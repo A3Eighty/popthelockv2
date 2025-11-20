@@ -83,6 +83,38 @@
                     <!-- Themes injected by JS -->
                 </div>
             </div>
+
+            <div id="customThemeEditor" class="hidden w-full mb-6 bg-gray-800 p-4 rounded-xl border border-gray-600">
+                <h3 class="text-gray-400 text-xs font-bold mb-3 uppercase tracking-wide flex justify-between items-center">
+                    Custom Colors <span class="text-[10px] opacity-50">(Live Preview)</span>
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex flex-col gap-1">
+                        <span class="text-xs text-gray-400 font-mono">Background</span>
+                        <input type="color" id="customBg" class="w-full h-8 rounded cursor-pointer bg-transparent" value="#111827">
+                    </label>
+                    <label class="flex flex-col gap-1">
+                        <span class="text-xs text-gray-400 font-mono">Lock Ring</span>
+                        <input type="color" id="customLock" class="w-full h-8 rounded cursor-pointer bg-transparent" value="#374151">
+                    </label>
+                    <label class="flex flex-col gap-1">
+                        <span class="text-xs text-gray-400 font-mono">Target Dot</span>
+                        <input type="color" id="customTarget" class="w-full h-8 rounded cursor-pointer bg-transparent" value="#facc15">
+                    </label>
+                    <label class="flex flex-col gap-1">
+                        <span class="text-xs text-gray-400 font-mono">Ticker Bar</span>
+                        <input type="color" id="customTicker" class="w-full h-8 rounded cursor-pointer bg-transparent" value="#ef4444">
+                    </label>
+                    <label class="flex flex-col gap-1">
+                        <span class="text-xs text-gray-400 font-mono">Text</span>
+                        <input type="color" id="customText" class="w-full h-8 rounded cursor-pointer bg-transparent" value="#ffffff">
+                    </label>
+                    <label class="flex flex-col gap-1">
+                        <span class="text-xs text-gray-400 font-mono">Flash Color</span>
+                        <input type="color" id="customProgress" class="w-full h-8 rounded cursor-pointer bg-transparent" value="#22c55e">
+                    </label>
+                </div>
+            </div>
             
             <div class="w-full mb-8">
                 <h3 class="text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">DIFFICULTY</h3>
@@ -148,6 +180,7 @@
         
         const themeGrid = document.getElementById('themeGrid');
         const diffGrid = document.getElementById('diffGrid');
+        const customThemeEditor = document.getElementById('customThemeEditor');
 
         // Data
         const THEMES = {
@@ -158,7 +191,8 @@
             'VAPOR': { name: 'Vapor', bg: '#2d1b4e', lock: '#4c1d95', target: '#00ffff', ticker: '#ff00ff', text: '#f3e8ff', progress: '#00ffff' },
             'FOREST': { name: 'Forest', bg: '#14532d', lock: '#166534', target: '#a3e635', ticker: '#fbbf24', text: '#f0fdf4', progress: '#4ade80' },
             'SUNSET': { name: 'Sunset', bg: '#431407', lock: '#7c2d12', target: '#fb923c', ticker: '#fde047', text: '#fff7ed', progress: '#f97316' },
-            'MONO': { name: 'Mono', bg: '#171717', lock: '#404040', target: '#ffffff', ticker: '#a3a3a3', text: '#fafafa', progress: '#ffffff' }
+            'MONO': { name: 'Mono', bg: '#171717', lock: '#404040', target: '#ffffff', ticker: '#a3a3a3', text: '#fafafa', progress: '#ffffff' },
+            'CUSTOM': { name: 'Custom', bg: '#111827', lock: '#374151', target: '#facc15', ticker: '#ef4444', text: '#ffffff', progress: '#22c55e' }
         };
 
         const DIFFICULTIES = {
@@ -257,6 +291,13 @@
             const t = THEMES[key];
             document.body.style.backgroundColor = t.bg;
             document.body.style.color = t.text;
+
+            // Show/Hide Custom Editor
+            if (key === 'CUSTOM') {
+                customThemeEditor.classList.remove('hidden');
+            } else {
+                customThemeEditor.classList.add('hidden');
+            }
             
             // Update Title & Instructions to match theme
             if (gameTitle) {
@@ -281,6 +322,13 @@
         function setDifficulty(key) {
             activeDifficulty = key;
             initMenus();
+        }
+
+        function updateCustomTheme(prop, val) {
+            THEMES['CUSTOM'][prop] = val;
+            if (activeTheme === 'CUSTOM') {
+                setTheme('CUSTOM');
+            }
         }
 
         function resize() {
@@ -318,6 +366,7 @@
             
             setTimeout(() => {
                 window.addEventListener('pointerdown', handleInput);
+                window.addEventListener('touchstart', handleInput);
                 window.addEventListener('keydown', handleKeyInput);
             }, 200);
             
@@ -333,6 +382,7 @@
             startScreen.classList.remove('hidden');
             
             window.removeEventListener('pointerdown', handleInput);
+            window.removeEventListener('touchstart', handleInput);
             window.removeEventListener('keydown', handleKeyInput);
             
             draw();
@@ -364,6 +414,7 @@
         function gameOver() {
             gameState = 'GAMEOVER';
             window.removeEventListener('pointerdown', handleInput);
+            window.removeEventListener('touchstart', handleInput);
             window.removeEventListener('keydown', handleKeyInput);
             
             scoreDisplay.classList.add('hidden');
@@ -380,16 +431,23 @@
         function gameWin() {
             gameState = 'WON';
             window.removeEventListener('pointerdown', handleInput);
+            window.removeEventListener('touchstart', handleInput);
             window.removeEventListener('keydown', handleKeyInput);
             
             scoreDisplay.classList.add('hidden');
             winScreen.classList.remove('hidden');
         }
 
+        let lastInputTime = 0;
         function handleInput(e) {
+            // Simple debounce for mobile touch/click overlap
+            const now = performance.now();
+            if (now - lastInputTime < 100) return;
+            lastInputTime = now;
+
             if (gameState !== 'PLAYING') return;
             
-            if (e && e.preventDefault) e.preventDefault();
+            if (e && e.cancelable && e.preventDefault) e.preventDefault();
 
             const diffVal = getAngleDifference(angle, targetAngle);
             const currentDiffSettings = DIFFICULTIES[activeDifficulty];
@@ -544,6 +602,14 @@
         menuBtn.addEventListener('click', returnToMenu);
         menuBtnWin.addEventListener('click', returnToMenu);
         
+        // Custom Theme Listeners
+        document.getElementById('customBg').addEventListener('input', (e) => updateCustomTheme('bg', e.target.value));
+        document.getElementById('customLock').addEventListener('input', (e) => updateCustomTheme('lock', e.target.value));
+        document.getElementById('customTarget').addEventListener('input', (e) => updateCustomTheme('target', e.target.value));
+        document.getElementById('customTicker').addEventListener('input', (e) => updateCustomTheme('ticker', e.target.value));
+        document.getElementById('customText').addEventListener('input', (e) => updateCustomTheme('text', e.target.value));
+        document.getElementById('customProgress').addEventListener('input', (e) => updateCustomTheme('progress', e.target.value));
+
         setTimeout(() => {
              resize();
              setTheme(activeTheme); // Initialize colors
