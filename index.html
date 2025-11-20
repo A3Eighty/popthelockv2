@@ -6,27 +6,44 @@
     <title>Pop the Lock</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap');
         body {
             font-family: 'Segoe UI', sans-serif;
-            touch-action: none; /* Prevent browser zooming/scrolling globally */
+            touch-action: none;
             overflow: hidden;
         }
-        /* Custom scrollbar for settings */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
         
         .interactive {
             cursor: pointer;
-            touch-action: manipulation; /* No double-tap zoom delay */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
             user-select: none;
             -webkit-user-select: none;
         }
+        
+        /* Glass Utilities */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .glass-card-deep {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-white h-screen w-screen flex flex-col items-center justify-center overflow-hidden">
+<body class="bg-gray-900 text-white h-screen w-screen flex flex-col items-center justify-center overflow-hidden transition-colors duration-500">
 
     <!-- Game Canvas -->
     <canvas id="gameCanvas" class="absolute top-0 left-0 w-full h-full z-0 touch-none"></canvas>
@@ -34,190 +51,224 @@
     <!-- UI Layer -->
     <div id="uiLayer" class="absolute top-0 left-0 w-full h-full z-10 pointer-events-none flex flex-col items-center justify-center">
         
-        <!-- Score/Countdown (Center of Lock) -->
-        <div id="scoreDisplay" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-9xl font-bold opacity-80 pointer-events-none select-none">50</div>
+        <!-- Score/Countdown -->
+        <div id="scoreDisplay" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-9xl font-bold opacity-80 pointer-events-none select-none font-mono">50</div>
 
         <!-- Start Screen -->
-        <div id="startScreen" class="absolute w-full h-full flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-300">
-            <h1 id="gameTitle" class="text-5xl md:text-7xl font-extrabold mb-4 tracking-wider text-center" style="text-shadow: 0 0 20px rgba(250, 204, 21, 0.6);">POP THE LOCK</h1>
-            <p id="gameInstruction" class="text-lg md:text-xl mb-12 opacity-80 font-light tracking-wide text-center">
-                TAP WHEN THE <span id="instrBar" class="font-bold">BAR</span> HITS THE <span id="instrDot" class="font-bold">DOT</span>
-            </p>
+        <div id="startScreen" class="absolute w-full h-full flex flex-col items-center justify-center pointer-events-auto transition-opacity duration-300 z-20">
+            <div class="flex flex-col items-center mb-16">
+                <h1 id="gameTitle" class="text-5xl md:text-7xl font-extrabold mb-2 tracking-wider text-center transition-all duration-300">POP THE LOCK</h1>
+                <p id="gameInstruction" class="text-sm md:text-base opacity-70 font-semibold tracking-widest text-center uppercase">
+                    Tap when the <span id="instrBar">BAR</span> hits the <span id="instrDot">DOT</span>
+                </p>
+            </div>
             
-            <button id="startBtn" class="interactive px-12 py-4 rounded-full text-xl font-bold shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition transform mb-6 bg-white text-black">
+            <button id="startBtn" class="interactive px-16 py-5 rounded-full text-xl font-black shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 mb-6 bg-white text-black tracking-wider border-2 border-transparent">
                 PLAY
             </button>
             
-            <button id="settingsBtn" class="interactive px-8 py-2 rounded-full text-sm font-bold border border-white/30 hover:bg-white/10 transition">
+            <button id="settingsBtn" class="interactive px-8 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white/10 hover:border-white/40 transition-all text-gray-300 tracking-widest">
                 SETTINGS
             </button>
         </div>
 
         <!-- Settings Screen -->
-        <div id="settingsScreen" class="hidden absolute w-full h-full flex-col items-center justify-start pt-10 pb-10 bg-gray-900/95 pointer-events-auto backdrop-blur-sm z-50" style="touch-action: pan-y; overflow-y: auto;">
-            <div class="w-full max-w-md px-6 flex flex-col gap-8">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-3xl font-bold">SETTINGS</h2>
-                    <button id="closeSettingsBtn" class="interactive text-2xl font-bold px-4 py-2 hover:text-red-400 transition">✕</button>
+        <div id="settingsScreen" class="hidden absolute w-full h-full flex-col items-center justify-start pt-12 pb-10 bg-gray-900/95 pointer-events-auto z-50 transition-all duration-300" style="touch-action: pan-y; overflow-y: auto;">
+            <div id="settingsContainer" class="w-full max-w-md px-6 flex flex-col gap-8 pb-20">
+                <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                    <h2 class="text-2xl font-bold tracking-tight">SETTINGS</h2>
+                    <button id="closeSettingsBtn" class="interactive w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition">✕</button>
                 </div>
 
                 <!-- Visual Themes -->
-                <div class="space-y-2">
-                    <h3 class="text-sm uppercase tracking-widest text-gray-400 font-bold">Visual Theme</h3>
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase tracking-widest text-gray-400 font-bold pl-1">Theme</h3>
                     <div id="themeGrid" class="grid grid-cols-3 gap-3">
                         <!-- Generated by JS -->
                     </div>
                 </div>
                 
                 <!-- Custom Theme Editor -->
-                <div id="customThemeEditor" class="hidden space-y-3 bg-gray-800 p-4 rounded-xl border border-gray-700">
-                    <div class="flex justify-between items-center mb-2">
-                        <h4 class="font-bold text-sm">Edit Custom Theme</h4>
-                        <button id="deleteThemeBtn" class="interactive text-xs text-red-400 hover:text-red-300 hidden">DELETE ✕</button>
+                <div id="customThemeEditor" class="hidden space-y-4 bg-gray-800/50 p-5 rounded-2xl border border-white/5">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-sm text-blue-300">Theme Editor</h4>
+                        <button id="deleteThemeBtn" class="interactive text-[10px] bg-red-500/20 text-red-300 px-2 py-1 rounded hover:bg-red-500/30 hidden">DELETE</button>
                     </div>
                     
-                    <div class="space-y-2">
-                        <input type="text" id="customThemeName" placeholder="Theme Name" class="interactive w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-white mb-2">
-                        
+                    <input type="text" id="customThemeName" placeholder="My Theme Name" class="interactive w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+
+                    <div class="grid grid-cols-2 gap-y-3 gap-x-4">
                         <div class="flex justify-between items-center">
                             <label class="text-xs text-gray-400">Background</label>
-                            <input type="color" id="customBg" class="interactive w-8 h-8 rounded bg-transparent cursor-pointer">
+                            <input type="color" id="customBg" class="interactive w-6 h-6 rounded-full overflow-hidden bg-transparent cursor-pointer border-none">
                         </div>
                         <div class="flex justify-between items-center">
                             <label class="text-xs text-gray-400">Lock Ring</label>
-                            <input type="color" id="customLock" class="interactive w-8 h-8 rounded bg-transparent cursor-pointer">
+                            <input type="color" id="customLock" class="interactive w-6 h-6 rounded-full overflow-hidden bg-transparent cursor-pointer border-none">
                         </div>
                         <div class="flex justify-between items-center">
-                            <label class="text-xs text-gray-400">Target Dot</label>
-                            <input type="color" id="customTarget" class="interactive w-8 h-8 rounded bg-transparent cursor-pointer">
+                            <label class="text-xs text-gray-400">Target/Glow</label>
+                            <input type="color" id="customTarget" class="interactive w-6 h-6 rounded-full overflow-hidden bg-transparent cursor-pointer border-none">
                         </div>
                         <div class="flex justify-between items-center">
                             <label class="text-xs text-gray-400">Ticker Bar</label>
-                            <input type="color" id="customTicker" class="interactive w-8 h-8 rounded bg-transparent cursor-pointer">
+                            <input type="color" id="customTicker" class="interactive w-6 h-6 rounded-full overflow-hidden bg-transparent cursor-pointer border-none">
                         </div>
                         <div class="flex justify-between items-center">
-                            <label class="text-xs text-gray-400">UI Text</label>
-                            <input type="color" id="customText" class="interactive w-8 h-8 rounded bg-transparent cursor-pointer">
+                            <label class="text-xs text-gray-400">Text Color</label>
+                            <input type="color" id="customText" class="interactive w-6 h-6 rounded-full overflow-hidden bg-transparent cursor-pointer border-none">
                         </div>
                         <div class="flex justify-between items-center">
-                            <label class="text-xs text-gray-400">Flash Color</label>
-                            <input type="color" id="customProgress" class="interactive w-8 h-8 rounded bg-transparent cursor-pointer">
+                            <label class="text-xs text-gray-400">Flash</label>
+                            <input type="color" id="customProgress" class="interactive w-6 h-6 rounded-full overflow-hidden bg-transparent cursor-pointer border-none">
                         </div>
                     </div>
                     
-                    <button id="saveThemeBtn" class="interactive w-full py-2 mt-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm">SAVE THEME</button>
+                    <button id="saveThemeBtn" class="interactive w-full py-3 mt-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs tracking-wide shadow-lg shadow-blue-900/20">SAVE THEME</button>
                 </div>
 
-                <!-- Glass UI Toggle -->
-                 <div class="flex justify-between items-center bg-gray-800/50 p-3 rounded-lg">
-                    <span class="text-sm font-bold">Glass UI Effect</span>
+                <!-- Options -->
+                 <div class="bg-white/5 p-4 rounded-xl border border-white/5 flex justify-between items-center">
+                    <span class="text-sm font-bold text-gray-200">Glass UI Mode</span>
                     <label class="relative inline-flex items-center cursor-pointer interactive">
                         <input type="checkbox" id="glassToggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-10 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                     </label>
                 </div>
 
                 <!-- Difficulty -->
-                <div class="space-y-2">
-                    <h3 class="text-sm uppercase tracking-widest text-gray-400 font-bold">Difficulty</h3>
-                    <div id="diffGrid" class="flex gap-2">
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase tracking-widest text-gray-400 font-bold pl-1">Difficulty</h3>
+                    <div id="diffGrid" class="flex gap-2 bg-black/20 p-1 rounded-lg">
                         <!-- Generated by JS -->
                     </div>
                     
                     <!-- Custom Diff Editor -->
-                    <div id="customDiffEditor" class="hidden space-y-4 bg-gray-800 p-4 rounded-xl mt-2">
+                    <div id="customDiffEditor" class="hidden space-y-5 bg-gray-800/50 p-5 rounded-2xl mt-2 border border-white/5">
                         <div>
-                            <div class="flex justify-between mb-1">
-                                <span class="text-xs font-bold">Base Speed</span>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-xs font-bold text-gray-300">Speed</span>
                                 <span id="customSpeedVal" class="text-xs text-gray-400">Normal</span>
                             </div>
-                            <input type="range" id="customSpeedRange" min="10" max="60" value="20" class="interactive w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <input type="range" id="customSpeedRange" min="10" max="60" value="20" class="interactive w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
                         </div>
                         <div>
-                            <div class="flex justify-between mb-1">
-                                <span class="text-xs font-bold">Target Size</span>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-xs font-bold text-gray-300">Dot Size</span>
                                 <span id="customSizeVal" class="text-xs text-gray-400">Normal</span>
                             </div>
-                            <input type="range" id="customSizeRange" min="15" max="50" value="32" class="interactive w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <input type="range" id="customSizeRange" min="15" max="50" value="32" class="interactive w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
                         </div>
                     </div>
                 </div>
                 
                 <!-- Audio -->
-                <div class="space-y-2">
-                    <h3 class="text-sm uppercase tracking-widest text-gray-400 font-bold">Sound Pack</h3>
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase tracking-widest text-gray-400 font-bold pl-1">Sound Pack</h3>
                     <div id="soundGrid" class="grid grid-cols-2 gap-2">
                         <!-- Generated by JS -->
                     </div>
                     
                     <!-- Custom Sound Editor -->
-                    <div id="customSoundEditor" class="hidden space-y-4 bg-gray-800 p-4 rounded-xl border border-purple-500/30 mt-2">
+                    <div id="customSoundEditor" class="hidden space-y-4 bg-gray-800/50 p-5 rounded-2xl border border-purple-500/20 mt-2 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500 opacity-50"></div>
                         <div class="flex justify-between items-center">
                              <h4 class="font-bold text-sm text-purple-300">Sound Lab</h4>
-                             <select id="soundTypeSelector" class="interactive bg-gray-900 border border-gray-600 text-xs rounded px-2 py-1">
+                             <select id="soundTypeSelector" class="interactive bg-black/30 border border-white/10 text-[10px] rounded px-2 py-1 text-gray-300 focus:outline-none">
                                  <option value="pop">Edit: Pop (Success)</option>
                                  <option value="fail">Edit: Fail (Death)</option>
                              </select>
                         </div>
                        
-                        <div class="space-y-3">
+                        <div class="space-y-4">
                             <div class="flex justify-between items-center">
-                                <span class="text-xs">Waveform</span>
-                                <select id="customWaveform" class="interactive bg-gray-900 border border-gray-600 text-xs rounded px-2 py-1">
-                                    <option value="sine">Sine (Soft)</option>
+                                <span class="text-xs text-gray-400">Waveform</span>
+                                <select id="customWaveform" class="interactive bg-black/30 border border-white/10 text-xs rounded px-2 py-1 text-white focus:outline-none">
+                                    <option value="sine">Sine (Smooth)</option>
                                     <option value="square">Square (Retro)</option>
                                     <option value="sawtooth">Sawtooth (Sharp)</option>
-                                    <option value="triangle">Triangle (Mellow)</option>
+                                    <option value="triangle">Triangle (Soft)</option>
                                 </select>
                             </div>
                             
                             <div>
                                 <div class="flex justify-between mb-1">
-                                    <span class="text-xs">Start Freq</span>
-                                    <span id="startFreqVal" class="text-xs text-gray-400">800</span>
+                                    <span class="text-xs text-gray-400">Start Pitch</span>
+                                    <span id="startFreqVal" class="text-xs text-gray-500">800</span>
                                 </div>
-                                <input type="range" id="startFreq" min="50" max="2000" step="10" class="interactive w-full h-2 bg-gray-700 rounded-lg appearance-none">
+                                <input type="range" id="startFreq" min="50" max="2000" step="10" class="interactive w-full h-1.5 bg-gray-700 rounded-lg appearance-none accent-purple-500">
                             </div>
                             
                             <div>
                                 <div class="flex justify-between mb-1">
-                                    <span class="text-xs">End Freq</span>
-                                    <span id="endFreqVal" class="text-xs text-gray-400">1200</span>
+                                    <span class="text-xs text-gray-400">End Pitch</span>
+                                    <span id="endFreqVal" class="text-xs text-gray-500">1200</span>
                                 </div>
-                                <input type="range" id="endFreq" min="50" max="2000" step="10" class="interactive w-full h-2 bg-gray-700 rounded-lg appearance-none">
+                                <input type="range" id="endFreq" min="50" max="2000" step="10" class="interactive w-full h-1.5 bg-gray-700 rounded-lg appearance-none accent-purple-500">
                             </div>
                             
                             <div>
                                 <div class="flex justify-between mb-1">
-                                    <span class="text-xs">Duration</span>
-                                    <span id="durationVal" class="text-xs text-gray-400">0.1</span>
+                                    <span class="text-xs text-gray-400">Duration</span>
+                                    <span id="durationVal" class="text-xs text-gray-500">0.1s</span>
                                 </div>
-                                <input type="range" id="soundDuration" min="0.05" max="1.0" step="0.05" class="interactive w-full h-2 bg-gray-700 rounded-lg appearance-none">
+                                <input type="range" id="soundDuration" min="0.05" max="1.0" step="0.05" class="interactive w-full h-1.5 bg-gray-700 rounded-lg appearance-none accent-purple-500">
                             </div>
                             
-                            <button id="testSoundBtn" class="interactive w-full py-2 bg-purple-600 hover:bg-purple-500 rounded font-bold text-xs">TEST SOUND</button>
+                            <button id="testSoundBtn" class="interactive w-full py-2 bg-purple-600/80 hover:bg-purple-600 rounded-lg font-bold text-xs tracking-wide transition">TEST SOUND</button>
                         </div>
                     </div>
                 </div>
                 
-                <div class="h-10"></div> <!-- Spacer -->
+
             </div>
         </div>
 
-        <!-- Game Over Screen -->
-        <div id="gameOverScreen" class="hidden absolute w-full h-full flex flex-col items-center justify-center pointer-events-auto z-40 bg-black/80 backdrop-blur-sm">
-            <h2 class="text-5xl font-bold text-red-500 mb-2">FAILED</h2>
-            <p id="finalScore" class="text-xl mb-8">Remaining: 12</p>
-            <button id="retryBtn" class="interactive px-10 py-3 rounded-full text-lg font-bold bg-white text-black mb-4 hover:scale-105 transition">TRY AGAIN</button>
-            <button id="menuBtn" class="interactive text-gray-400 hover:text-white transition underline">Main Menu</button>
+        <!-- Game Over Screen (Refreshed) -->
+        <div id="gameOverScreen" class="hidden absolute w-full h-full flex flex-col items-center justify-center z-40 bg-black/80 backdrop-blur-sm transition-all duration-500 p-6 pointer-events-auto">
+            <div id="gameOverCard" class="relative w-full max-w-sm p-8 rounded-3xl flex flex-col items-center text-center transition-all duration-300 bg-gray-900 border border-gray-800 shadow-2xl">
+                
+                <h2 class="text-5xl font-black text-red-500 mb-1 tracking-tighter" style="text-shadow: 0 0 25px rgba(239,68,68,0.3);">FAILED</h2>
+                <p class="text-xs text-gray-500 uppercase tracking-[0.2em] mb-8 font-bold">Game Over</p>
+                
+                <div class="flex items-end justify-center gap-2 mb-8 w-full">
+                    <div class="flex flex-col items-center bg-white/5 p-4 rounded-2xl w-1/2 border border-white/5">
+                        <span class="text-gray-400 text-[10px] uppercase tracking-widest font-bold mb-1">Score</span>
+                        <span id="finalScore" class="text-4xl font-bold text-white">12</span>
+                    </div>
+                    <div class="flex flex-col items-center bg-white/5 p-4 rounded-2xl w-1/2 border border-white/5">
+                        <span class="text-gray-400 text-[10px] uppercase tracking-widest font-bold mb-1">Remaining</span>
+                        <span id="remainingScore" class="text-4xl font-bold text-yellow-500">38</span>
+                    </div>
+                </div>
+                
+                <button id="retryBtn" class="interactive w-full py-4 rounded-xl text-lg font-black bg-white text-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all mb-3">
+                    TRY AGAIN
+                </button>
+                <button id="menuBtn" class="interactive w-full py-3 rounded-xl text-sm font-bold text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                    MAIN MENU
+                </button>
+            </div>
         </div>
 
-        <!-- Win Screen -->
-        <div id="winScreen" class="hidden absolute w-full h-full flex flex-col items-center justify-center pointer-events-auto z-40 bg-black/80 backdrop-blur-sm">
-            <h2 class="text-5xl font-bold text-green-400 mb-2">UNLOCKED!</h2>
-            <p class="text-xl mb-8">All 50 Dots Popped</p>
-            <button id="playAgainBtn" class="interactive px-10 py-3 rounded-full text-lg font-bold bg-white text-black mb-4 hover:scale-105 transition">PLAY AGAIN</button>
-            <button id="menuBtnWin" class="interactive text-gray-400 hover:text-white transition underline">Main Menu</button>
+        <!-- Win Screen (Refreshed) -->
+        <div id="winScreen" class="hidden absolute w-full h-full flex flex-col items-center justify-center z-40 bg-black/80 backdrop-blur-sm transition-all duration-500 p-6 pointer-events-auto">
+            <div id="winCard" class="relative w-full max-w-sm p-8 rounded-3xl flex flex-col items-center text-center transition-all duration-300 bg-gray-900 border border-gray-800 shadow-2xl">
+                
+                <h2 class="text-5xl font-black text-green-400 mb-2 tracking-tighter" style="text-shadow: 0 0 25px rgba(74,222,128,0.3);">UNLOCKED</h2>
+                <p class="text-sm text-gray-400 mb-8">All 50 Dots Popped!</p>
+                
+                <div class="mb-8">
+                    <div class="text-6xl">🔓</div>
+                </div>
+                
+                <button id="playAgainBtn" class="interactive w-full py-4 rounded-xl text-lg font-black bg-white text-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all mb-3">
+                    PLAY AGAIN
+                </button>
+                <button id="menuBtnWin" class="interactive w-full py-3 rounded-xl text-sm font-bold text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                    MAIN MENU
+                </button>
+            </div>
         </div>
     </div>
 
@@ -229,10 +280,16 @@
         const uiLayer = document.getElementById('uiLayer');
         const startScreen = document.getElementById('startScreen');
         const settingsScreen = document.getElementById('settingsScreen');
+        const settingsContainer = document.getElementById('settingsContainer');
         const gameOverScreen = document.getElementById('gameOverScreen');
         const winScreen = document.getElementById('winScreen');
         const scoreDisplay = document.getElementById('scoreDisplay');
         
+        // Cards
+        const gameOverCard = document.getElementById('gameOverCard');
+        const winCard = document.getElementById('winCard');
+        
+        // Buttons
         const startBtn = document.getElementById('startBtn');
         const settingsBtn = document.getElementById('settingsBtn');
         const closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -241,6 +298,7 @@
         const menuBtn = document.getElementById('menuBtn');
         const menuBtnWin = document.getElementById('menuBtnWin');
         const finalScoreEl = document.getElementById('finalScore');
+        const bestScoreEl = document.getElementById('bestScore');
         
         const gameTitle = document.getElementById('gameTitle');
         const gameInstruction = document.getElementById('gameInstruction');
@@ -250,6 +308,7 @@
         const themeGrid = document.getElementById('themeGrid');
         const diffGrid = document.getElementById('diffGrid');
         const soundGrid = document.getElementById('soundGrid');
+        
         const customThemeEditor = document.getElementById('customThemeEditor');
         const customDiffEditor = document.getElementById('customDiffEditor');
         const deleteThemeBtn = document.getElementById('deleteThemeBtn');
@@ -275,13 +334,15 @@
         // Data
         const THEMES = {
             'ARCADE': { name: 'Arcade', bg: '#111827', lock: '#374151', target: '#facc15', ticker: '#ef4444', text: '#ffffff', progress: '#22c55e' },
-            'MINIMAL': { name: 'Minimal', bg: '#e5e7eb', lock: '#9ca3af', target: '#3b82f6', ticker: '#1f2937', text: '#1f2937', progress: '#059669' },
-            'NEON': { name: 'Neon', bg: '#000000', lock: '#262626', target: '#00ff00', ticker: '#ff00ff', text: '#00ff00', progress: '#00ff00' },
+            'MINIMAL': { name: 'Minimal', bg: '#f3f4f6', lock: '#d1d5db', target: '#3b82f6', ticker: '#1f2937', text: '#1f2937', progress: '#10b981' },
+            'NEON': { name: 'Neon', bg: '#000000', lock: '#262626', target: '#00ff00', ticker: '#ff00ff', text: '#00ff00', progress: '#ccff00' },
             'OCEAN': { name: 'Ocean', bg: '#0f172a', lock: '#1e293b', target: '#38bdf8', ticker: '#f472b6', text: '#e0f2fe', progress: '#2dd4bf' },
             'VAPOR': { name: 'Vapor', bg: '#2d1b4e', lock: '#4c1d95', target: '#00ffff', ticker: '#ff00ff', text: '#f3e8ff', progress: '#00ffff' },
             'FOREST': { name: 'Forest', bg: '#14532d', lock: '#166534', target: '#a3e635', ticker: '#fbbf24', text: '#f0fdf4', progress: '#4ade80' },
             'SUNSET': { name: 'Sunset', bg: '#431407', lock: '#7c2d12', target: '#fb923c', ticker: '#fde047', text: '#fff7ed', progress: '#f97316' },
-            'MONO': { name: 'Mono', bg: '#171717', lock: '#404040', target: '#ffffff', ticker: '#a3a3a3', text: '#fafafa', progress: '#ffffff' },
+            'MONO': { name: 'Mono', bg: '#000000', lock: '#333333', target: '#ffffff', ticker: '#888888', text: '#ffffff', progress: '#ffffff' },
+            'AMOLED': { name: 'Amoled', bg: '#000000', lock: '#1a1a1a', target: '#ef4444', ticker: '#ffffff', text: '#ffffff', progress: '#ef4444' },
+            'EMBER': { name: 'Ember', bg: '#1c1917', lock: '#ea580c', target: '#facc15', ticker: '#ffffff', text: '#ffedd5', progress: '#fb923c' },
             'CUSTOM': { name: 'Custom', bg: '#111827', lock: '#374151', target: '#facc15', ticker: '#ef4444', text: '#ffffff', progress: '#22c55e' }
         };
 
@@ -296,7 +357,7 @@
             'DEFAULT': { label: 'Classic' },
             'BUBBLE': { label: 'Bubble' },
             'RETRO': { label: '8-Bit' },
-            'CLICK': { label: 'Mechanical' },
+            'CLICK': { label: 'Mech' },
             'SPACE': { label: 'Space' },
             'LOFI': { label: 'Lofi' },
             'DREAMY': { label: 'Dreamy' },
@@ -319,6 +380,7 @@
         
         let gameState = 'IDLE'; 
         let score = 0;
+        let highScore = 0;
         const MAX_SCORE = 50;
         
         let centerX, centerY, radius;
@@ -328,6 +390,7 @@
         let direction = 1; 
         let lastTime = 0;
         let lastHitTime = 0;
+        let targetDistance = 0; // Distance to travel for new target
 
         // Audio
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -342,10 +405,10 @@
             osc.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             
+            // Sound Pack Logic
             if (activeSoundPack === 'CUSTOM') {
                 const params = customSounds[type];
-                
-                if (params) {
+                if (params && (type === 'pop' || type === 'fail')) {
                     osc.type = params.waveform;
                     osc.frequency.setValueAtTime(params.startFreq, now);
                     const targetFreq = Math.max(1, params.endFreq);
@@ -353,17 +416,98 @@
                     gainNode.gain.setValueAtTime(0.4, now);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, now + params.duration);
                     osc.start(); osc.stop(now + params.duration + 0.05);
-                } else if (type === 'win') {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523, now); 
-                    gainNode.gain.setValueAtTime(0.3, now);
-                    gainNode.gain.linearRampToValueAtTime(0, now + 0.8);
-                    osc.start(); osc.stop(now + 0.8);
+                    return;
                 }
-                return;
             }
-            
-            if (activeSoundPack === 'WOOD') {
+
+            // Distinct Sound Packs
+            if (activeSoundPack === 'BUBBLE') {
+                 if (type === 'pop') {
+                    osc.type = 'sine'; 
+                    osc.frequency.setValueAtTime(400, now); 
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.15); 
+                    gainNode.gain.setValueAtTime(0.5, now); 
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15); 
+                    osc.start(); osc.stop(now + 0.15);
+                } else if (type === 'fail') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(100, now + 0.3); gainNode.gain.setValueAtTime(0.4, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(); osc.stop(now + 0.3);
+                } else if (type === 'win') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.linearRampToValueAtTime(1200, now + 0.5); gainNode.gain.setValueAtTime(0.4, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.5); osc.start(); osc.stop(now + 0.5);
+                }
+            }
+            else if (activeSoundPack === 'RETRO') {
+                 if (type === 'pop') {
+                    osc.type = 'square'; 
+                    osc.frequency.setValueAtTime(600, now); 
+                    osc.frequency.setValueAtTime(800, now + 0.05);
+                    gainNode.gain.setValueAtTime(0.3, now); 
+                    gainNode.gain.setValueAtTime(0.3, now + 0.09);
+                    gainNode.gain.setValueAtTime(0, now + 0.1); 
+                    osc.start(); osc.stop(now + 0.1);
+                } else if (type === 'fail') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(200, now); osc.frequency.setValueAtTime(150, now + 0.1); osc.frequency.setValueAtTime(100, now + 0.2); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(); osc.stop(now + 0.4);
+                } else if (type === 'win') {
+                    const freqs = [523, 659, 783, 1046];
+                    freqs.forEach((f, i) => {
+                        const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination);
+                        o.type='square'; o.frequency.setValueAtTime(f, now + i*0.1);
+                        g.gain.setValueAtTime(0.2, now + i*0.1); g.gain.linearRampToValueAtTime(0, now + i*0.1 + 0.1);
+                        o.start(); o.stop(now + i*0.1 + 0.1);
+                    });
+                }
+            }
+            else if (activeSoundPack === 'CLICK') {
+                 if (type === 'pop') {
+                    osc.type = 'triangle'; 
+                    osc.frequency.setValueAtTime(2500, now); 
+                    gainNode.gain.setValueAtTime(0.8, now); 
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.03); 
+                    osc.start(); osc.stop(now + 0.03);
+                } else if (type === 'fail') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(100, now); gainNode.gain.setValueAtTime(0.5, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(); osc.stop(now + 0.1);
+                } else if (type === 'win') {
+                    for(let i=0; i<3; i++) {
+                        const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination);
+                        o.type='triangle'; o.frequency.setValueAtTime(2000 + i*500, now + i*0.05);
+                        g.gain.setValueAtTime(0.5, now + i*0.05); g.gain.exponentialRampToValueAtTime(0.01, now + i*0.05 + 0.03);
+                        o.start(); o.stop(now + i*0.05 + 0.03);
+                    }
+                }
+            }
+            else if (activeSoundPack === 'SPACE') {
+                 if (type === 'pop') {
+                    osc.type = 'sawtooth'; 
+                    osc.frequency.setValueAtTime(800, now); 
+                    osc.frequency.linearRampToValueAtTime(2000, now + 0.2); 
+                    gainNode.gain.setValueAtTime(0.2, now); 
+                    gainNode.gain.linearRampToValueAtTime(0, now + 0.2); 
+                    osc.start(); osc.stop(now + 0.2);
+                } else if (type === 'fail') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(50, now + 0.5); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(); osc.stop(now + 0.5);
+                } else if (type === 'win') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.linearRampToValueAtTime(880, now+0.5); gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now+1.0); osc.start(); osc.stop(now+1.0);
+                }
+            }
+            else if (activeSoundPack === 'LOFI') {
+                 if (type === 'pop') {
+                    osc.type = 'triangle'; 
+                    osc.frequency.setValueAtTime(440, now); 
+                    gainNode.gain.setValueAtTime(0.5, now); 
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); 
+                    osc.start(); osc.stop(now + 0.1);
+                } else if (type === 'fail') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(100, now); gainNode.gain.setValueAtTime(0.5, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(); osc.stop(now + 0.3);
+                } else if (type === 'win') {
+                    const freqs = [349, 440, 523]; 
+                    freqs.forEach((f) => {
+                        const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination);
+                        o.type='triangle'; o.frequency.setValueAtTime(f, now);
+                        g.gain.setValueAtTime(0.1, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                        o.start(); o.stop(now + 0.8);
+                    });
+                }
+            }
+            else if (activeSoundPack === 'WOOD') {
                  if (type === 'pop') {
                     osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); gainNode.gain.setValueAtTime(0.6, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05); osc.start(); osc.stop(now + 0.05);
                 } else if (type === 'fail') {
@@ -381,68 +525,25 @@
                     osc.type = 'sine'; osc.frequency.setValueAtTime(880, now); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5); osc.start(); osc.stop(now + 1.5);
                 }
             }
-            else if (activeSoundPack === 'DEFAULT') {
+            else if (activeSoundPack === 'DREAMY') {
+                if (type === 'pop') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(523, now); gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(); osc.stop(now + 0.5);
+                } else if (type === 'fail') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.5); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(); osc.stop(now + 0.5);
+                } else if (type === 'win') {
+                    const freqs = [523, 659, 783]; freqs.forEach((f,i) => {
+                        const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type='sine'; o.frequency.setValueAtTime(f, now+i*0.1); g.gain.setValueAtTime(0.1, now+i*0.1); g.gain.linearRampToValueAtTime(0, now+1.5); o.start(); o.stop(now+1.5);
+                    });
+                }
+            }
+            // Default (Classic)
+            else {
                 if (type === 'pop') {
                     osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08); gainNode.gain.setValueAtTime(0.4, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08); osc.start(); osc.stop(now + 0.08);
                 } else if (type === 'fail') {
                     osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(80, now + 0.4); gainNode.gain.setValueAtTime(0.4, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(); osc.stop(now + 0.4);
                 } else if (type === 'win') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(659, now + 0.1); osc.frequency.setValueAtTime(783, now + 0.2); osc.frequency.setValueAtTime(1046, now + 0.3); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.8); osc.start(); osc.stop(now + 0.8);
-                }
-            } 
-            else if (activeSoundPack === 'BUBBLE') {
-                if (type === 'pop') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(600, now + 0.15); gainNode.gain.setValueAtTime(0.5, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.15); osc.start(); osc.stop(now + 0.15);
-                } else if (type === 'fail') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(50, now + 0.3); gainNode.gain.setValueAtTime(0.5, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(); osc.stop(now + 0.3);
-                } else if (type === 'win') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(800, now + 0.2); osc.frequency.linearRampToValueAtTime(1200, now + 0.4); gainNode.gain.setValueAtTime(0.4, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.8); osc.start(); osc.stop(now + 0.8);
-                }
-            }
-            else if (activeSoundPack === 'RETRO') {
-                if (type === 'pop') {
-                    osc.type = 'square'; osc.frequency.setValueAtTime(600, now); osc.frequency.setValueAtTime(1200, now + 0.05); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(); osc.stop(now + 0.1);
-                } else if (type === 'fail') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(50, now + 0.4); gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(); osc.stop(now + 0.4);
-                } else if (type === 'win') {
-                    osc.type = 'square'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(880, now + 0.1); osc.frequency.setValueAtTime(1760, now + 0.2); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6); osc.start(); osc.stop(now + 0.6);
-                }
-            }
-            else if (activeSoundPack === 'CLICK') {
-                if (type === 'pop') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(2000, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.02); gainNode.gain.setValueAtTime(0.8, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.02); osc.start(); osc.stop(now + 0.03);
-                } else if (type === 'fail') {
-                    osc.type = 'square'; osc.frequency.setValueAtTime(100, now); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(); osc.stop(now + 0.1);
-                } else if (type === 'win') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(1000, now); osc.frequency.linearRampToValueAtTime(2000, now + 0.1); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(); osc.stop(now + 0.3);
-                }
-            }
-            else if (activeSoundPack === 'SPACE') {
-                if (type === 'pop') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2); osc.start(); osc.stop(now + 0.2);
-                } else if (type === 'fail') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(50, now + 0.5); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(); osc.stop(now + 0.5);
-                } else if (type === 'win') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(2000, now + 0.6); gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6); osc.start(); osc.stop(now + 0.6);
-                }
-            }
-            else if (activeSoundPack === 'LOFI') {
-                if (type === 'pop') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(300, now + 0.1); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(); osc.stop(now + 0.1);
-                } else if (type === 'fail') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2); gainNode.gain.setValueAtTime(0.5, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.2); osc.start(); osc.stop(now + 0.2);
-                } else if (type === 'win') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.setValueAtTime(400, now + 0.1); osc.frequency.setValueAtTime(500, now + 0.2); osc.frequency.setValueAtTime(600, now + 0.3); gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.8); osc.start(); osc.stop(now + 0.8);
-                }
-            }
-            else if (activeSoundPack === 'DREAMY') {
-                if (type === 'pop') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8); osc.start(); osc.stop(now + 0.8);
-                    const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain(); osc2.connect(gain2); gain2.connect(audioCtx.destination); osc2.type = 'sine'; osc2.frequency.setValueAtTime(1046.50, now); gain2.gain.setValueAtTime(0.1, now); gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.6); osc2.start(); osc2.stop(now + 0.6);
-                } else if (type === 'fail') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(140, now + 0.5); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(); osc.stop(now + 0.5);
-                } else if (type === 'win') {
-                    const freqs = [523.25, 659.25, 783.99, 1046.50]; freqs.forEach((f, i) => { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type = 'sine'; o.frequency.setValueAtTime(f, now + i*0.1); g.gain.setValueAtTime(0.1, now + i*0.1); g.gain.linearRampToValueAtTime(0, now + 2.0); o.start(); o.stop(now + 2.0); });
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(659, now + 0.1); osc.frequency.setValueAtTime(783, now + 0.2); gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.8); osc.start(); osc.stop(now + 0.8);
                 }
             }
         }
@@ -450,8 +551,12 @@
         function bindBtn(idOrEl, action) {
             const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
             if (!el) return;
+            
+            // Use standard click for everything to be safe with scrolling
             el.addEventListener('click', (e) => {
-                if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT') { e.preventDefault(); }
+                if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT') {
+                    e.preventDefault();
+                }
                 action(e);
             });
         }
@@ -459,18 +564,25 @@
         function initMenus() {
             themeGrid.innerHTML = '';
             for (const [key, theme] of Object.entries(THEMES)) {
+                if (key.startsWith('CUSTOM') && key !== 'CUSTOM' && !key.includes('_')) continue; // Internal logic skip
+
                 const btn = document.createElement('button');
-                const isCustom = key.startsWith('CUSTOM') && key !== 'CUSTOM';
-                btn.className = `p-3 rounded-lg font-bold text-sm uppercase tracking-wide transition transform hover:scale-105 border-2 relative overflow-hidden touch-manipulation ${activeTheme === key ? 'border-white ring-2 ring-offset-2 ring-offset-gray-900 ring-blue-500' : 'border-transparent'}`;
+                const isCustom = key.startsWith('CUSTOM');
+                const isSaved = key.startsWith('CUSTOM_');
+                
+                btn.className = `interactive p-3 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-transform active:scale-95 border relative overflow-hidden h-16 flex items-center justify-center text-center`;
                 btn.style.backgroundColor = theme.bg;
                 btn.style.color = theme.target;
-                btn.style.borderColor = theme.lock;
+                btn.style.borderColor = activeTheme === key ? theme.target : theme.lock;
+                btn.style.boxShadow = activeTheme === key ? `0 0 15px ${theme.target}40` : 'none';
                 btn.innerText = theme.name;
-                if (isCustom) {
-                    const indicator = document.createElement('div');
-                    indicator.className = "absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 shadow-sm";
-                    btn.appendChild(indicator);
+                
+                if (isSaved) {
+                     const indicator = document.createElement('div');
+                     indicator.className = "absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-blue-400 shadow-sm";
+                     btn.appendChild(indicator);
                 }
+                
                 bindBtn(btn, () => setTheme(key));
                 themeGrid.appendChild(btn);
             }
@@ -478,7 +590,7 @@
             diffGrid.innerHTML = '';
             for (const [key, diff] of Object.entries(DIFFICULTIES)) {
                 const btn = document.createElement('button');
-                btn.className = `flex-1 py-2 rounded-md font-bold text-sm transition touch-manipulation ${activeDifficulty === key ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`;
+                btn.className = `interactive flex-1 py-2 rounded-md font-bold text-[10px] uppercase tracking-wider transition-colors ${activeDifficulty === key ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`;
                 btn.innerText = diff.label;
                 bindBtn(btn, () => setDifficulty(key));
                 diffGrid.appendChild(btn);
@@ -487,7 +599,7 @@
             soundGrid.innerHTML = '';
             for (const [key, pack] of Object.entries(SOUND_PACKS)) {
                 const btn = document.createElement('button');
-                btn.className = `flex-1 py-2 rounded-md font-bold text-sm transition touch-manipulation ${activeSoundPack === key ? 'bg-purple-600 text-white shadow-md' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`;
+                btn.className = `interactive flex-1 py-2 rounded-md font-bold text-[10px] uppercase tracking-wider transition-colors ${activeSoundPack === key ? 'bg-purple-500 text-white shadow-sm' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`;
                 btn.innerText = pack.label;
                 bindBtn(btn, () => setSoundPack(key));
                 soundGrid.appendChild(btn);
@@ -514,45 +626,46 @@
                 customThemeEditor.classList.add('hidden');
             }
             
-            if (gameTitle) {
-                gameTitle.style.color = t.target;
-                gameTitle.style.textShadow = `0 0 15px ${t.target}80`; 
-            }
-            if (gameInstruction) {
-                gameInstruction.style.color = t.text;
-                gameInstruction.style.opacity = '0.8';
-            }
-            if (instrBar) {
-                instrBar.style.color = t.ticker;
-            }
-            if (instrDot) {
-                instrDot.style.color = t.target;
+            // Text Colors
+            gameTitle.style.color = t.target;
+            gameTitle.style.textShadow = `0 0 25px ${t.target}60`; 
+            instrBar.style.color = t.ticker;
+            instrDot.style.color = t.target;
+            
+            // Stats Colors
+            const remainingScoreEl = document.getElementById('remainingScore');
+            if (remainingScoreEl) {
+                remainingScoreEl.style.color = t.target;
+                remainingScoreEl.classList.remove('text-yellow-500'); 
             }
 
-            // Update buttons to match theme
-            const buttons = [startBtn, retryBtn, playAgainBtn];
-            const classesToRemove = [
-                'bg-yellow-500', 'hover:bg-yellow-400', 'border-yellow-300', 'text-black', 
-                'bg-white', 'hover:bg-gray-200',
-                'shadow-[0_0_20px_rgba(234,179,8,0.6)]'
-            ];
+            // Card Colors & Backgrounds
+            if (gameOverCard) {
+                gameOverCard.style.borderColor = t.lock;
+                gameOverCard.style.backgroundColor = t.bg;
+                gameOverCard.style.color = t.text;
+            }
+            if (winCard) {
+                winCard.style.borderColor = t.target;
+                winCard.style.backgroundColor = t.bg;
+                winCard.style.color = t.text;
+            }
             
-            buttons.forEach(btn => {
-                btn.classList.remove(...classesToRemove);
-                // Force remove inline styles to reset clean if needed, but we set them below
+            // Button Colors
+            const playBtns = [startBtn, retryBtn, playAgainBtn];
+            playBtns.forEach(btn => {
                 btn.style.backgroundColor = t.target;
-                btn.style.borderColor = t.lock;
-                btn.style.boxShadow = `0 0 20px ${t.target}80`;
+                btn.style.boxShadow = `0 0 20px ${t.target}50`;
                 
-                // Determine text color based on brightness
-                // Simple heuristic: if target is dark, white text. Else black.
-                // Most targets are bright (Yellow, Cyan, Green). So black is safe.
-                // BUT Ocean target is #38bdf8 (Sky Blue), Neon #00ff00. 
-                // Mono target is White.
-                // Let's default to black text for high visibility on bright buttons.
-                btn.style.color = '#000000'; 
+                // Contrast check for text color
+                const hex = t.target.replace('#', '');
+                const r = parseInt(hex.substr(0,2),16);
+                const g = parseInt(hex.substr(2,2),16);
+                const b = parseInt(hex.substr(4,2),16);
+                const yiq = ((r*299)+(g*587)+(b*114))/1000;
+                btn.style.color = (yiq >= 128) ? '#000000' : '#ffffff';
             });
-            
+
             applyGlassState();
             initMenus();
             draw();
@@ -560,11 +673,25 @@
 
         function applyGlassState() {
             if (glassMode) {
-                settingsScreen.classList.remove('bg-gray-900/95', 'border-gray-700');
-                settingsScreen.classList.add('bg-gray-900/40', 'backdrop-blur-xl', 'border-white/20', 'shadow-[0_0_30px_rgba(0,0,0,0.5)]');
+                settingsScreen.classList.remove('bg-gray-900/95');
+                settingsScreen.classList.add('bg-gray-900/60', 'backdrop-blur-xl');
+                
+                // We don't set bg colors on cards here anymore to respect theme colors
+                if (gameOverCard) gameOverCard.classList.add('backdrop-blur-lg');
+                if (winCard) winCard.classList.add('backdrop-blur-lg');
+                
             } else {
-                settingsScreen.classList.add('bg-gray-900/95', 'border-gray-700');
-                settingsScreen.classList.remove('bg-gray-900/40', 'backdrop-blur-xl', 'border-white/20', 'shadow-[0_0_30px_rgba(0,0,0,0.5)]');
+                settingsScreen.classList.add('bg-gray-900/95');
+                settingsScreen.classList.remove('bg-gray-900/60', 'backdrop-blur-xl');
+                
+                if (gameOverCard) gameOverCard.classList.remove('backdrop-blur-lg');
+                if (winCard) winCard.classList.remove('backdrop-blur-lg');
+            }
+            
+            // Always ensure theme borders applied
+            if (THEMES[activeTheme]) {
+                 if (gameOverCard) gameOverCard.style.borderColor = THEMES[activeTheme].lock;
+                 if (winCard) winCard.style.borderColor = THEMES[activeTheme].target;
             }
         }
 
@@ -577,12 +704,11 @@
         
         function setDifficulty(key) {
             activeDifficulty = key;
-            
             if (key === 'CUSTOM') {
                 customDiffEditor.classList.remove('hidden');
-                const customSettings = DIFFICULTIES['CUSTOM'];
-                customSpeedRange.value = Math.round(customSettings.speed * 10000);
-                customSizeRange.value = customSettings.size;
+                const s = DIFFICULTIES['CUSTOM'];
+                customSpeedRange.value = Math.round(s.speed * 10000);
+                customSizeRange.value = s.size;
                 updateCustomDiffDisplay();
             } else {
                 customDiffEditor.classList.add('hidden');
@@ -593,25 +719,16 @@
         function updateCustomDiffDisplay() {
             const speedVal = parseInt(customSpeedRange.value);
             let speedText = "Normal";
-            if (speedVal < 15) speedText = "Super Chill";
-            else if (speedVal < 20) speedText = "Chill";
-            else if (speedVal === 20) speedText = "Normal";
+            if (speedVal < 15) speedText = "Chill";
             else if (speedVal < 30) speedText = "Fast";
             else if (speedVal < 45) speedText = "Sweaty";
             else speedText = "Insane";
             
-            customSpeedVal.innerText = speedText + ` (${speedVal})`;
+            customSpeedVal.innerText = speedText + " (" + speedVal + ")";
             DIFFICULTIES['CUSTOM'].speed = speedVal / 10000;
             
             const sizeVal = parseInt(customSizeRange.value);
-            let sizeText = "Normal";
-            if (sizeVal < 20) sizeText = "Tiny";
-            else if (sizeVal < 32) sizeText = "Small";
-            else if (sizeVal === 32) sizeText = "Normal";
-            else if (sizeVal < 45) sizeText = "Large";
-            else sizeText = "Huge";
-            
-            customSizeVal.innerText = sizeText + ` (${sizeVal}px)`;
+            customSizeVal.innerText = sizeVal + "px";
             DIFFICULTIES['CUSTOM'].size = sizeVal;
         }
 
@@ -619,13 +736,7 @@
             activeSoundPack = key;
             localStorage.setItem('popLockSoundPack', key);
             playSound('pop'); 
-            
-            if (key === 'CUSTOM') {
-                customSoundEditor.classList.remove('hidden');
-            } else {
-                customSoundEditor.classList.add('hidden');
-            }
-            
+            customSoundEditor.classList.toggle('hidden', key !== 'CUSTOM');
             initMenus();
         }
 
@@ -638,13 +749,11 @@
 
         function saveCustomTheme() {
             const nameInput = document.getElementById('customThemeName');
-            let name = nameInput.value.trim();
-            if (!name) name = 'My Theme';
+            let name = nameInput.value.trim() || 'My Theme';
             
             if (activeTheme === 'CUSTOM') {
                 const newKey = 'CUSTOM_' + Date.now();
-                const newTheme = { ...THEMES['CUSTOM'], name: name };
-                THEMES[newKey] = newTheme;
+                THEMES[newKey] = { ...THEMES['CUSTOM'], name: name };
                 activeTheme = newKey;
             } else if (activeTheme.startsWith('CUSTOM_')) {
                 THEMES[activeTheme].name = name;
@@ -657,7 +766,7 @@
                 }
             }
             localStorage.setItem('popLockSavedThemes', JSON.stringify(savedThemes));
-            customThemeEditor.classList.add('hidden');
+            customThemeEditor.classList.add('hidden'); // Close editor
             initMenus(); 
         }
 
@@ -666,9 +775,7 @@
                 delete THEMES[activeTheme];
                 const savedThemes = {};
                 for (const key in THEMES) {
-                    if (key.startsWith('CUSTOM_')) {
-                        savedThemes[key] = THEMES[key];
-                    }
+                    if (key.startsWith('CUSTOM_')) savedThemes[key] = THEMES[key];
                 }
                 localStorage.setItem('popLockSavedThemes', JSON.stringify(savedThemes));
                 setTheme('ARCADE');
@@ -680,26 +787,22 @@
             Object.assign(THEMES, savedThemes);
             
             const savedSound = localStorage.getItem('popLockSoundPack');
-            if (savedSound && SOUND_PACKS[savedSound]) {
-                activeSoundPack = savedSound;
-            }
+            if (savedSound && SOUND_PACKS[savedSound]) activeSoundPack = savedSound;
 
             const savedGlass = localStorage.getItem('popLockGlassMode');
             if (savedGlass === 'true') {
                 glassMode = true;
                 glassToggle.checked = true;
-                applyGlassState();
             }
+            
+            highScore = parseInt(localStorage.getItem('popLockHighScore') || '0');
             
             const savedCustomSound = localStorage.getItem('popLockCustomSound');
             if (savedCustomSound) {
                 try {
                     const parsed = JSON.parse(savedCustomSound);
-                    if (parsed.waveform) {
-                        customSounds.pop = parsed;
-                    } else {
-                        customSounds = parsed;
-                    }
+                    if (parsed.waveform) customSounds.pop = parsed;
+                    else customSounds = parsed;
                 } catch(e) {}
             }
             updateSoundEditorUI();
@@ -708,15 +811,13 @@
         function updateSoundEditorUI() {
             const params = customSounds[currentEditType];
             if (!params) return;
-            
             customWaveform.value = params.waveform;
             startFreqRange.value = params.startFreq;
             endFreqRange.value = params.endFreq;
             soundDurationRange.value = params.duration;
-            
             startFreqVal.innerText = params.startFreq;
             endFreqVal.innerText = params.endFreq;
-            durationVal.innerText = params.duration;
+            durationVal.innerText = params.duration + 's';
         }
         
         function updateCustomSound() {
@@ -726,11 +827,7 @@
                 endFreq: parseInt(endFreqRange.value),
                 duration: parseFloat(soundDurationRange.value)
             };
-            
-            startFreqVal.innerText = startFreqRange.value;
-            endFreqVal.innerText = endFreqRange.value;
-            durationVal.innerText = soundDurationRange.value;
-            
+            updateSoundEditorUI();
             localStorage.setItem('popLockCustomSound', JSON.stringify(customSounds));
         }
 
@@ -740,6 +837,7 @@
             centerX = canvas.width / 2;
             centerY = canvas.height / 2;
             radius = Math.min(canvas.width, canvas.height) * 0.22;
+            draw();
         }
         
         window.addEventListener('resize', resize);
@@ -754,6 +852,7 @@
         startFreqRange.addEventListener('input', updateCustomSound);
         endFreqRange.addEventListener('input', updateCustomSound);
         soundDurationRange.addEventListener('input', updateCustomSound);
+        glassToggle.addEventListener('change', toggleGlass);
         
         bindBtn(testSoundBtn, () => {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -763,13 +862,10 @@
             activeSoundPack = temp;
         });
 
-        // Glass Toggle Listener
-        glassToggle.addEventListener('change', toggleGlass);
-
-        resize();
         loadSavedThemes();
         initMenus();
-        setTheme(activeTheme); // Force initial theme apply for buttons
+        resize();
+        setTheme(activeTheme);
 
         function startGame() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -782,7 +878,7 @@
             const diff = DIFFICULTIES[activeDifficulty];
             velocity = diff.speed;
             
-            startScreen.classList.add('hidden');
+            startScreen.classList.add('opacity-0', 'pointer-events-none');
             gameOverScreen.classList.add('hidden');
             winScreen.classList.add('hidden');
             
@@ -791,7 +887,9 @@
             
             spawnTarget();
             
+            // Input Listeners
             setTimeout(() => {
+                // Main game input uses touchstart for zero latency
                 window.addEventListener('pointerdown', handleInput);
                 window.addEventListener('touchstart', handleInput, { passive: false });
                 window.addEventListener('keydown', handleKeyInput);
@@ -806,7 +904,7 @@
             scoreDisplay.classList.add('hidden');
             gameOverScreen.classList.add('hidden');
             winScreen.classList.add('hidden');
-            startScreen.classList.remove('hidden');
+            startScreen.classList.remove('opacity-0', 'pointer-events-none');
             
             window.removeEventListener('pointerdown', handleInput);
             window.removeEventListener('touchstart', handleInput);
@@ -816,7 +914,6 @@
         }
 
         function openSettings() {
-            startScreen.classList.add('opacity-0', 'pointer-events-none');
             settingsScreen.classList.remove('hidden');
             settingsScreen.classList.add('flex');
         }
@@ -824,18 +921,18 @@
         function closeSettings() {
             settingsScreen.classList.add('hidden');
             settingsScreen.classList.remove('flex');
-            startScreen.classList.remove('opacity-0', 'pointer-events-none');
         }
 
         function spawnTarget() {
-            let valid = false;
-            while (!valid) {
-                targetAngle = Math.random() * Math.PI * 2;
-                let diff = Math.abs(getAngleDifference(angle, targetAngle));
-                if (diff > 1.0 && diff < 4.5) { 
-                    valid = true;
-                }
-            }
+            // Logic for random distance
+            const minDist = Math.PI / 3; 
+            const maxDist = Math.PI * 1.5; 
+            const range = maxDist - minDist;
+            const dist = minDist + (Math.random() * range);
+            
+            targetAngle = angle + (dist * direction);
+            targetAngle = targetAngle % (Math.PI * 2);
+            if (targetAngle < 0) targetAngle += Math.PI * 2;
         }
         
         function gameOver() {
@@ -846,8 +943,19 @@
             
             scoreDisplay.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
-            finalScoreEl.innerText = 'Remaining: ' + (MAX_SCORE - score);
             
+            // Update Scores
+            finalScoreEl.innerText = score;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('popLockHighScore', highScore);
+            }
+            
+            const remaining = Math.max(0, MAX_SCORE - score);
+            const remainingEl = document.getElementById('remainingScore');
+            if(remainingEl) remainingEl.innerText = remaining;
+            
+            // Shake
             const intensity = 10;
             canvas.style.transform = `translate(${intensity}px, ${intensity}px)`;
             setTimeout(() => canvas.style.transform = `translate(-${intensity}px, -${intensity}px)`, 50);
@@ -868,7 +976,7 @@
         let lastInputTime = 0;
         function handleInput(e) {
             const now = performance.now();
-            if (now - lastInputTime < 50) return;
+            if (now - lastInputTime < 100) return; // Debounce
             lastInputTime = now;
 
             if (gameState !== 'PLAYING') return;
@@ -900,15 +1008,7 @@
                 
                 direction *= -1;
                 velocity = (currentDiffSettings.speed + (score * currentDiffSettings.inc)) * direction;
-                
-                const minDist = Math.PI / 3; 
-                const maxDist = Math.PI * 1.5; 
-                const range = maxDist - minDist;
-                const dist = minDist + (Math.random() * range);
-                
-                targetAngle = angle + (dist * direction);
-                targetAngle = targetAngle % (Math.PI * 2);
-                if (targetAngle < 0) targetAngle += Math.PI * 2;
+                spawnTarget();
                 
             } else {
                 playSound('fail');
@@ -938,7 +1038,6 @@
             lastTime = timestamp;
             const safeDt = Math.min(dt, 50);
             
-            const prevAngle = angle;
             angle += velocity * safeDt;
             angle = angle % (Math.PI * 2);
             if (angle < 0) angle += Math.PI * 2;
@@ -958,32 +1057,41 @@
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            // Draw Base Lock
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.lineWidth = 50; 
-            ctx.strokeStyle = t.lock;
-            ctx.stroke();
-
+            
             if (isFlashing) {
-                ctx.save();
+                // Flash Logic
                 const progress = timeSinceHit / flashDuration;
                 const alpha = 0.8 * (1 - progress);
                 
+                ctx.strokeStyle = t.lock; 
+                ctx.stroke();
+                
+                // Outer Glow Flash
+                ctx.save();
                 ctx.globalAlpha = alpha;
                 ctx.globalCompositeOperation = 'lighter';
                 
-                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius + 26, 0, Math.PI * 2); // Outer ring
+                ctx.lineWidth = 4;
                 ctx.strokeStyle = t.progress;
                 ctx.shadowColor = t.progress;
                 ctx.shadowBlur = 50;
-                
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, radius + 28, 0, Math.PI * 2);
                 ctx.stroke();
                 
+
                 ctx.restore();
+                
+            } else {
+                ctx.strokeStyle = t.lock;
+                ctx.stroke();
             }
-            
+
+            // Target Dot
             const targetX = centerX + Math.cos(targetAngle) * radius;
             const targetY = centerY + Math.sin(targetAngle) * radius;
             
@@ -991,10 +1099,11 @@
             ctx.arc(targetX, targetY, dotSize, 0, Math.PI * 2);
             ctx.fillStyle = t.target;
             ctx.shadowColor = t.target;
-            ctx.shadowBlur = 25;
+            ctx.shadowBlur = 30;
             ctx.fill();
             ctx.shadowBlur = 0; 
             
+            // Ticker Bar
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(angle);
@@ -1004,22 +1113,18 @@
             ctx.shadowColor = t.ticker;
             ctx.shadowBlur = 15;
             
-            roundRect(ctx, -40, -10, 80, 20, 10); 
+            // Round Rect Ticker
+            const w = 80; const h = 20; const r = 10;
+            ctx.beginPath();
+            ctx.moveTo(-w/2 + r, -h/2);
+            ctx.arcTo(w/2, -h/2, w/2, h/2, r);
+            ctx.arcTo(w/2, h/2, -w/2, h/2, r);
+            ctx.arcTo(-w/2, h/2, -w/2, -h/2, r);
+            ctx.arcTo(-w/2, -h/2, w/2, -h/2, r);
+            ctx.closePath();
             
             ctx.fill();
             ctx.restore();
-        }
-        
-        function roundRect(ctx, x, y, w, h, r) {
-            if (w < 2 * r) r = w / 2;
-            if (h < 2 * r) r = h / 2;
-            ctx.beginPath();
-            ctx.moveTo(x + r, y);
-            ctx.arcTo(x + w, y, x + w, y + h, r);
-            ctx.arcTo(x + w, y + h, x, y + h, r);
-            ctx.arcTo(x, y + h, x, y, r);
-            ctx.arcTo(x, y, x + w, y, r);
-            ctx.closePath();
         }
 
         bindBtn(startBtn, startGame);
