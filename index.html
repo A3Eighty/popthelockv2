@@ -114,6 +114,10 @@
                         <input type="color" id="customProgress" class="w-full h-8 rounded cursor-pointer bg-transparent" value="#22c55e">
                     </label>
                 </div>
+                <div class="mt-4 flex gap-2">
+                    <input type="text" id="customThemeName" placeholder="Theme Name" class="flex-1 bg-gray-700 text-white px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" maxlength="12">
+                    <button id="saveThemeBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm font-bold transition">SAVE</button>
+                </div>
             </div>
             
             <div class="w-full mb-8">
@@ -266,11 +270,19 @@
             themeGrid.innerHTML = '';
             for (const [key, theme] of Object.entries(THEMES)) {
                 const btn = document.createElement('button');
-                btn.className = `p-3 rounded-lg font-bold text-sm uppercase tracking-wide transition transform hover:scale-105 border-2 ${activeTheme === key ? 'border-white ring-2 ring-offset-2 ring-offset-gray-900 ring-blue-500' : 'border-transparent'}`;
+                const isCustom = key.startsWith('CUSTOM') && key !== 'CUSTOM';
+                btn.className = `p-3 rounded-lg font-bold text-sm uppercase tracking-wide transition transform hover:scale-105 border-2 relative overflow-hidden ${activeTheme === key ? 'border-white ring-2 ring-offset-2 ring-offset-gray-900 ring-blue-500' : 'border-transparent'}`;
                 btn.style.backgroundColor = theme.bg;
                 btn.style.color = theme.target;
                 btn.style.borderColor = theme.lock;
                 btn.innerText = theme.name;
+                
+                if (isCustom) {
+                    const indicator = document.createElement('div');
+                    indicator.className = "absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 shadow-sm";
+                    btn.appendChild(indicator);
+                }
+
                 btn.onclick = () => setTheme(key);
                 themeGrid.appendChild(btn);
             }
@@ -331,6 +343,30 @@
             }
         }
 
+        function saveCustomTheme() {
+            const nameInput = document.getElementById('customThemeName');
+            let name = nameInput.value.trim();
+            if (!name) name = 'My Theme';
+            
+            const newKey = 'CUSTOM_' + Date.now();
+            const newTheme = { ...THEMES['CUSTOM'], name: name };
+            
+            THEMES[newKey] = newTheme;
+            
+            // Save to LocalStorage
+            const savedThemes = JSON.parse(localStorage.getItem('popLockSavedThemes') || '{}');
+            savedThemes[newKey] = newTheme;
+            localStorage.setItem('popLockSavedThemes', JSON.stringify(savedThemes));
+            
+            nameInput.value = '';
+            setTheme(newKey);
+        }
+
+        function loadSavedThemes() {
+            const savedThemes = JSON.parse(localStorage.getItem('popLockSavedThemes') || '{}');
+            Object.assign(THEMES, savedThemes);
+        }
+
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -341,6 +377,7 @@
         
         window.addEventListener('resize', resize);
         resize();
+        loadSavedThemes();
         initMenus();
 
         function startGame() {
@@ -366,7 +403,7 @@
             
             setTimeout(() => {
                 window.addEventListener('pointerdown', handleInput);
-                window.addEventListener('touchstart', handleInput);
+                window.addEventListener('touchstart', handleInput, { passive: false });
                 window.addEventListener('keydown', handleKeyInput);
             }, 200);
             
@@ -609,6 +646,8 @@
         document.getElementById('customTicker').addEventListener('input', (e) => updateCustomTheme('ticker', e.target.value));
         document.getElementById('customText').addEventListener('input', (e) => updateCustomTheme('text', e.target.value));
         document.getElementById('customProgress').addEventListener('input', (e) => updateCustomTheme('progress', e.target.value));
+
+        document.getElementById('saveThemeBtn').addEventListener('click', saveCustomTheme);
 
         setTimeout(() => {
              resize();
