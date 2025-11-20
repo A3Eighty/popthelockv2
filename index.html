@@ -155,7 +155,13 @@
                     <!-- Sound buttons injected by JS -->
                 </div>
                 <div id="customSoundEditor" class="hidden mt-4 w-full bg-gray-800 p-4 rounded-xl border border-gray-600">
-                    <h3 class="text-gray-400 text-xs font-bold mb-3 uppercase tracking-wide">Custom Pop Sound</h3>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wide">Edit Sound</h3>
+                        <select id="soundTypeSelector" class="bg-gray-700 text-white text-xs rounded p-1 border border-gray-600 focus:outline-none focus:border-purple-500 touch-manipulation">
+                            <option value="pop">Pop (Success)</option>
+                            <option value="fail">Fail (Death)</option>
+                        </select>
+                    </div>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <select id="customWaveform" class="w-full bg-gray-700 text-white rounded p-2 text-sm">
                             <option value="sine">Sine</option>
@@ -291,12 +297,11 @@
             'CUSTOM': { label: 'Custom' }
         };
         
-        let customSoundParams = {
-            waveform: 'sine',
-            startFreq: 800,
-            endFreq: 1200,
-            duration: 0.1
+        let customSounds = {
+            pop: { waveform: 'sine', startFreq: 800, endFreq: 1200, duration: 0.1 },
+            fail: { waveform: 'sawtooth', startFreq: 150, endFreq: 80, duration: 0.4 }
         };
+        let currentEditType = 'pop';
 
         // State
         let activeTheme = 'ARCADE';
@@ -329,29 +334,29 @@
             gainNode.connect(audioCtx.destination);
             
             if (activeSoundPack === 'CUSTOM') {
-                if (type === 'pop') {
-                    osc.type = customSoundParams.waveform;
-                    osc.frequency.setValueAtTime(customSoundParams.startFreq, now);
-                    osc.frequency.exponentialRampToValueAtTime(Math.max(1, customSoundParams.endFreq), now + customSoundParams.duration);
+                const params = customSounds[type];
+                
+                if (params) {
+                    osc.type = params.waveform;
+                    osc.frequency.setValueAtTime(params.startFreq, now);
+                    
+                    // Use exponential ramp for smooth frequency slides
+                    // Ensure target frequency is positive for exponential ramp
+                    const targetFreq = Math.max(1, params.endFreq);
+                    osc.frequency.exponentialRampToValueAtTime(targetFreq, now + params.duration);
+                    
                     gainNode.gain.setValueAtTime(0.4, now);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + customSoundParams.duration);
-                    osc.start(); osc.stop(now + customSoundParams.duration + 0.05);
-                } else {
-                    // Fallback for fail/win in custom mode (use default for now or generic)
-                     if (type === 'fail') {
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(150, now);
-                        osc.frequency.linearRampToValueAtTime(80, now + 0.4);
-                        gainNode.gain.setValueAtTime(0.4, now);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                        osc.start(); osc.stop(now + 0.4);
-                    } else if (type === 'win') {
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(523, now); 
-                        gainNode.gain.setValueAtTime(0.3, now);
-                        gainNode.gain.linearRampToValueAtTime(0, now + 0.8);
-                        osc.start(); osc.stop(now + 0.8);
-                    }
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + params.duration);
+                    
+                    osc.start(); 
+                    osc.stop(now + params.duration + 0.05);
+                } else if (type === 'win') {
+                    // Fallback for win sound if not customized
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523, now); 
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.linearRampToValueAtTime(0, now + 0.8);
+                    osc.start(); osc.stop(now + 0.8);
                 }
                 return;
             }
@@ -787,32 +792,45 @@
             const savedCustomSound = localStorage.getItem('popLockCustomSound');
             if (savedCustomSound) {
                 try {
-                    customSoundParams = JSON.parse(savedCustomSound);
-                    // Update UI
-                    customWaveform.value = customSoundParams.waveform;
-                    startFreqRange.value = customSoundParams.startFreq;
-                    endFreqRange.value = customSoundParams.endFreq;
-                    soundDurationRange.value = customSoundParams.duration;
-                    updateCustomSoundDisplay();
+                    const parsed = JSON.parse(savedCustomSound);
+                    // Migration check: if old format (flat object), convert to new format
+                    if (parsed.waveform) {
+                        customSounds.pop = parsed;
+                    } else {
+                        customSounds = parsed;
+                    }
                 } catch(e) {}
             }
+            updateSoundEditorUI();
         }
         
-        function updateCustomSoundDisplay() {
-            startFreqVal.innerText = startFreqRange.value;
-            endFreqVal.innerText = endFreqRange.value;
-            durationVal.innerText = soundDurationRange.value;
+        function updateSoundEditorUI() {
+            const params = customSounds[currentEditType];
+            if (!params) return;
+            
+            customWaveform.value = params.waveform;
+            startFreqRange.value = params.startFreq;
+            endFreqRange.value = params.endFreq;
+            soundDurationRange.value = params.duration;
+            
+            startFreqVal.innerText = params.startFreq;
+            endFreqVal.innerText = params.endFreq;
+            durationVal.innerText = params.duration;
         }
         
         function updateCustomSound() {
-            customSoundParams = {
+            customSounds[currentEditType] = {
                 waveform: customWaveform.value,
                 startFreq: parseInt(startFreqRange.value),
                 endFreq: parseInt(endFreqRange.value),
                 duration: parseFloat(soundDurationRange.value)
             };
-            updateCustomSoundDisplay();
-            localStorage.setItem('popLockCustomSound', JSON.stringify(customSoundParams));
+            
+            startFreqVal.innerText = startFreqRange.value;
+            endFreqVal.innerText = endFreqRange.value;
+            durationVal.innerText = soundDurationRange.value;
+            
+            localStorage.setItem('popLockCustomSound', JSON.stringify(customSounds));
         }
 
         function resize() {
@@ -826,16 +844,22 @@
         window.addEventListener('resize', resize);
         
         // Custom Sound Listeners
+        const soundTypeSelector = document.getElementById('soundTypeSelector');
+        soundTypeSelector.addEventListener('change', (e) => {
+            currentEditType = e.target.value;
+            updateSoundEditorUI();
+        });
+
         customWaveform.addEventListener('change', updateCustomSound);
         startFreqRange.addEventListener('input', updateCustomSound);
         endFreqRange.addEventListener('input', updateCustomSound);
         soundDurationRange.addEventListener('input', updateCustomSound);
+        
         bindBtn(testSoundBtn, () => {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            // Force play even if current pack isn't CUSTOM (temporarily switch context or just run manual logic)
             const temp = activeSoundPack;
             activeSoundPack = 'CUSTOM';
-            playSound('pop');
+            playSound(currentEditType); // Play the sound currently being edited
             activeSoundPack = temp;
         });
 
