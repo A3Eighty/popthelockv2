@@ -341,7 +341,6 @@
                     osc.frequency.setValueAtTime(params.startFreq, now);
                     
                     // Use exponential ramp for smooth frequency slides
-                    // Ensure target frequency is positive for exponential ramp
                     const targetFreq = Math.max(1, params.endFreq);
                     osc.frequency.exponentialRampToValueAtTime(targetFreq, now + params.duration);
                     
@@ -597,7 +596,29 @@
         function bindBtn(idOrEl, action) {
             const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
             if (!el) return;
-            el.addEventListener('click', (e) => action(e));
+            
+            let handled = false;
+            
+            const handleEvent = (e) => {
+                if (e.type === 'click' && handled) {
+                    handled = false;
+                    return;
+                }
+                
+                if (e.type === 'touchstart') {
+                    handled = true;
+                    const isScrollableGrid = el.closest('#themeGrid') || el.closest('#diffGrid') || el.closest('#soundGrid');
+                    if (!isScrollableGrid) {
+                        if (e.cancelable) e.preventDefault();
+                        action(e);
+                    }
+                } else {
+                    action(e);
+                }
+            };
+
+            el.addEventListener('touchstart', handleEvent, { passive: false });
+            el.addEventListener('click', handleEvent);
         }
         
         function initMenus() {
@@ -793,7 +814,6 @@
             if (savedCustomSound) {
                 try {
                     const parsed = JSON.parse(savedCustomSound);
-                    // Migration check: if old format (flat object), convert to new format
                     if (parsed.waveform) {
                         customSounds.pop = parsed;
                     } else {
@@ -843,7 +863,6 @@
         
         window.addEventListener('resize', resize);
         
-        // Custom Sound Listeners
         const soundTypeSelector = document.getElementById('soundTypeSelector');
         soundTypeSelector.addEventListener('change', (e) => {
             currentEditType = e.target.value;
@@ -859,7 +878,7 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const temp = activeSoundPack;
             activeSoundPack = 'CUSTOM';
-            playSound(currentEditType); // Play the sound currently being edited
+            playSound(currentEditType); 
             activeSoundPack = temp;
         });
 
@@ -891,7 +910,7 @@
                 window.addEventListener('pointerdown', handleInput);
                 window.addEventListener('touchstart', handleInput, { passive: false });
                 window.addEventListener('keydown', handleKeyInput);
-            }, 200);
+            }, 100);
             
             lastTime = performance.now();
             requestAnimationFrame(loop);
@@ -964,7 +983,7 @@
         let lastInputTime = 0;
         function handleInput(e) {
             const now = performance.now();
-            if (now - lastInputTime < 100) return;
+            if (now - lastInputTime < 50) return;
             lastInputTime = now;
 
             if (gameState !== 'PLAYING') return;
@@ -1137,7 +1156,6 @@
         
         customSpeedRange.addEventListener('input', updateCustomDiffDisplay);
         customSizeRange.addEventListener('input', updateCustomDiffDisplay);
-        // Strict mode toggle removed
     </script>
 </body>
 </html>
