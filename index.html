@@ -133,14 +133,19 @@
                     <!-- Difficulty buttons injected by JS -->
                 </div>
                 <div id="customDiffEditor" class="hidden mt-3 w-full bg-gray-800 p-4 rounded-xl border border-gray-600">
-                    <h3 class="text-gray-400 text-xs font-bold mb-3 uppercase tracking-wide flex justify-between items-center">
-                        Custom Speed <span id="customSpeedVal" class="text-white font-mono">Normal</span>
+                    <!-- Speed Slider -->
+                    <h3 class="text-gray-400 text-xs font-bold mb-2 uppercase tracking-wide flex justify-between items-center">
+                        Base Speed <span id="customSpeedVal" class="text-white font-mono">Normal</span>
                     </h3>
-                    <input type="range" id="customSpeedRange" min="10" max="60" value="20" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 touch-pan-y">
-                    <p class="text-[10px] text-gray-500 mt-2 flex justify-between">
-                        <span>Slow</span>
-                        <span>Impossible</span>
-                    </p>
+                    <input type="range" id="customSpeedRange" min="10" max="60" value="20" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 touch-pan-y mb-4">
+                    
+                    <!-- Target Size Slider -->
+                    <h3 class="text-gray-400 text-xs font-bold mb-2 uppercase tracking-wide flex justify-between items-center">
+                        Target Size <span id="customSizeVal" class="text-white font-mono">Normal</span>
+                    </h3>
+                    <input type="range" id="customSizeRange" min="10" max="60" value="32" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 touch-pan-y mb-4">
+
+
                 </div>
             </div>
 
@@ -148,6 +153,30 @@
                 <h3 class="text-gray-400 text-sm font-bold mb-3 uppercase tracking-wide">AUDIO</h3>
                 <div class="grid grid-cols-2 gap-2" id="soundGrid">
                     <!-- Sound buttons injected by JS -->
+                </div>
+                <div id="customSoundEditor" class="hidden mt-4 w-full bg-gray-800 p-4 rounded-xl border border-gray-600">
+                    <h3 class="text-gray-400 text-xs font-bold mb-3 uppercase tracking-wide">Custom Pop Sound</h3>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <select id="customWaveform" class="w-full bg-gray-700 text-white rounded p-2 text-sm">
+                            <option value="sine">Sine</option>
+                            <option value="square">Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                            <option value="triangle">Triangle</option>
+                        </select>
+                        <button id="testSoundBtn" class="bg-purple-600 text-white rounded font-bold text-xs uppercase shadow-md">Test Sound</button>
+                    </div>
+                    <label class="block mb-2">
+                        <span class="text-xs text-gray-400">Start Freq: <span id="startFreqVal" class="text-white font-mono">800</span>Hz</span>
+                        <input type="range" id="startFreq" min="100" max="2000" value="800" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-500 touch-pan-y">
+                    </label>
+                    <label class="block mb-2">
+                        <span class="text-xs text-gray-400">End Freq: <span id="endFreqVal" class="text-white font-mono">1200</span>Hz</span>
+                        <input type="range" id="endFreq" min="100" max="2000" value="1200" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-500 touch-pan-y">
+                    </label>
+                    <label class="block mb-2">
+                        <span class="text-xs text-gray-400">Duration: <span id="durationVal" class="text-white font-mono">0.1</span>s</span>
+                        <input type="range" id="soundDuration" min="0.05" max="0.5" step="0.01" value="0.1" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-500 touch-pan-y">
+                    </label>
                 </div>
             </div>
             
@@ -212,8 +241,22 @@
         const customDiffEditor = document.getElementById('customDiffEditor');
         const deleteThemeBtn = document.getElementById('deleteThemeBtn');
         const saveThemeBtn = document.getElementById('saveThemeBtn');
+        
         const customSpeedRange = document.getElementById('customSpeedRange');
         const customSpeedVal = document.getElementById('customSpeedVal');
+        const customSizeRange = document.getElementById('customSizeRange');
+        const customSizeVal = document.getElementById('customSizeVal');
+        
+        // Sound Editor
+        const customSoundEditor = document.getElementById('customSoundEditor');
+        const customWaveform = document.getElementById('customWaveform');
+        const startFreqRange = document.getElementById('startFreq');
+        const endFreqRange = document.getElementById('endFreq');
+        const soundDurationRange = document.getElementById('soundDuration');
+        const testSoundBtn = document.getElementById('testSoundBtn');
+        const startFreqVal = document.getElementById('startFreqVal');
+        const endFreqVal = document.getElementById('endFreqVal');
+        const durationVal = document.getElementById('durationVal');
 
         // Data
         const THEMES = {
@@ -229,10 +272,10 @@
         };
 
         const DIFFICULTIES = {
-            'EASY': { label: 'Chill', speed: 0.0015, inc: 0.00008, tol: 0.35 },
-            'NORMAL': { label: 'Normal', speed: 0.0020, inc: 0.00012, tol: 0.28 },
-            'HARD': { label: 'Sweaty', speed: 0.0028, inc: 0.00018, tol: 0.22 },
-            'CUSTOM': { label: 'Custom', speed: 0.0020, inc: 0.00012, tol: 0.28 }
+            'EASY': { label: 'Chill', speed: 0.0015, inc: 0.00008, tol: 0.35, size: 32 },
+            'NORMAL': { label: 'Normal', speed: 0.0020, inc: 0.00012, tol: 0.28, size: 32 },
+            'HARD': { label: 'Sweaty', speed: 0.0028, inc: 0.00018, tol: 0.22, size: 32 },
+            'CUSTOM': { label: 'Custom', speed: 0.0020, inc: 0.00012, tol: 0.28, size: 32 }
         };
 
         const SOUND_PACKS = {
@@ -241,7 +284,18 @@
             'RETRO': { label: '8-Bit' },
             'CLICK': { label: 'Mechanical' },
             'SPACE': { label: 'Space' },
-            'LOFI': { label: 'Lofi' }
+            'LOFI': { label: 'Lofi' },
+            'DREAMY': { label: 'Dreamy' },
+            'WOOD': { label: 'Wood' },
+            'BELL': { label: 'Bell' },
+            'CUSTOM': { label: 'Custom' }
+        };
+        
+        let customSoundParams = {
+            waveform: 'sine',
+            startFreq: 800,
+            endFreq: 1200,
+            duration: 0.1
         };
 
         // State
@@ -267,14 +321,85 @@
         
         function playSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             osc.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             
-            const now = audioCtx.currentTime;
+            if (activeSoundPack === 'CUSTOM') {
+                if (type === 'pop') {
+                    osc.type = customSoundParams.waveform;
+                    osc.frequency.setValueAtTime(customSoundParams.startFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(Math.max(1, customSoundParams.endFreq), now + customSoundParams.duration);
+                    gainNode.gain.setValueAtTime(0.4, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + customSoundParams.duration);
+                    osc.start(); osc.stop(now + customSoundParams.duration + 0.05);
+                } else {
+                    // Fallback for fail/win in custom mode (use default for now or generic)
+                     if (type === 'fail') {
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(150, now);
+                        osc.frequency.linearRampToValueAtTime(80, now + 0.4);
+                        gainNode.gain.setValueAtTime(0.4, now);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                        osc.start(); osc.stop(now + 0.4);
+                    } else if (type === 'win') {
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(523, now); 
+                        gainNode.gain.setValueAtTime(0.3, now);
+                        gainNode.gain.linearRampToValueAtTime(0, now + 0.8);
+                        osc.start(); osc.stop(now + 0.8);
+                    }
+                }
+                return;
+            }
             
-            if (activeSoundPack === 'DEFAULT') {
+            if (activeSoundPack === 'WOOD') {
+                 if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    gainNode.gain.setValueAtTime(0.6, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(); osc.stop(now + 0.05);
+                } else if (type === 'fail') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(100, now);
+                    gainNode.gain.setValueAtTime(0.4, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(); osc.stop(now + 0.2);
+                } else if (type === 'win') {
+                    // Xylophone run
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523, now);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(); osc.stop(now + 0.5);
+                }
+            }
+            else if (activeSoundPack === 'BELL') {
+                 if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, now);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5); // Long tail
+                    osc.start(); osc.stop(now + 0.5);
+                } else if (type === 'fail') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(); osc.stop(now + 0.4);
+                } else if (type === 'win') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+                    osc.start(); osc.stop(now + 1.5);
+                }
+            }
+            else if (activeSoundPack === 'DEFAULT') {
                 if (type === 'pop') {
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(800, now);
@@ -375,7 +500,6 @@
             }
             else if (activeSoundPack === 'SPACE') {
                 if (type === 'pop') {
-                    // Laser pew
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(800, now);
                     osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
@@ -383,7 +507,6 @@
                     gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                     osc.start(); osc.stop(now + 0.2);
                 } else if (type === 'fail') {
-                    // Low drone
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(100, now);
                     osc.frequency.linearRampToValueAtTime(50, now + 0.5);
@@ -391,7 +514,6 @@
                     gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
                     osc.start(); osc.stop(now + 0.5);
                 } else if (type === 'win') {
-                    // Sci-fi rise
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(200, now);
                     osc.frequency.exponentialRampToValueAtTime(2000, now + 0.6);
@@ -402,7 +524,6 @@
             }
             else if (activeSoundPack === 'LOFI') {
                 if (type === 'pop') {
-                    // Soft tap
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(400, now);
                     osc.frequency.linearRampToValueAtTime(300, now + 0.1);
@@ -410,7 +531,6 @@
                     gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
                     osc.start(); osc.stop(now + 0.1);
                 } else if (type === 'fail') {
-                    // Muted thud
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(100, now);
                     osc.frequency.linearRampToValueAtTime(50, now + 0.2);
@@ -418,7 +538,6 @@
                     gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
                     osc.start(); osc.stop(now + 0.2);
                 } else if (type === 'win') {
-                    // Gentle chord (arpeggiated)
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(300, now);
                     osc.frequency.setValueAtTime(400, now + 0.1);
@@ -429,12 +548,51 @@
                     osc.start(); osc.stop(now + 0.8);
                 }
             }
+            else if (activeSoundPack === 'DREAMY') {
+                if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                    osc.start(); osc.stop(now + 0.8);
+                    
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(1046.50, now); 
+                    gain2.gain.setValueAtTime(0.1, now);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                    osc2.start(); osc2.stop(now + 0.6);
+                } else if (type === 'fail') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(140, now + 0.5);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+                    osc.start(); osc.stop(now + 0.5);
+                } else if (type === 'win') {
+                    const freqs = [523.25, 659.25, 783.99, 1046.50];
+                    freqs.forEach((f, i) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(f, now + i*0.1);
+                        g.gain.setValueAtTime(0.1, now + i*0.1);
+                        g.gain.linearRampToValueAtTime(0, now + 2.0);
+                        o.start(); o.stop(now + 2.0);
+                    });
+                }
+            }
         }
 
         function bindBtn(idOrEl, action) {
             const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
             if (!el) return;
-            el.addEventListener('click', action);
+            el.addEventListener('click', (e) => action(e));
         }
         
         function initMenus() {
@@ -448,13 +606,11 @@
                 btn.style.color = theme.target;
                 btn.style.borderColor = theme.lock;
                 btn.innerText = theme.name;
-                
                 if (isCustom) {
                     const indicator = document.createElement('div');
                     indicator.className = "absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 shadow-sm";
                     btn.appendChild(indicator);
                 }
-
                 bindBtn(btn, () => setTheme(key));
                 themeGrid.appendChild(btn);
             }
@@ -488,7 +644,6 @@
 
             if (key.startsWith('CUSTOM')) {
                 customThemeEditor.classList.remove('hidden');
-                // Reset values
                 document.getElementById('customBg').value = t.bg;
                 document.getElementById('customLock').value = t.lock;
                 document.getElementById('customTarget').value = t.target;
@@ -525,41 +680,52 @@
             
             if (key === 'CUSTOM') {
                 customDiffEditor.classList.remove('hidden');
-                // Load saved custom speed if exists? Or just use defaults
-                // Updating the range input to match current settings
-                const currentSpeed = DIFFICULTIES['CUSTOM'].speed;
-                // Convert speed back to range value (10-60)
-                // range val = speed * 10000
-                customSpeedRange.value = Math.round(currentSpeed * 10000);
+                const customSettings = DIFFICULTIES['CUSTOM'];
+                customSpeedRange.value = Math.round(customSettings.speed * 10000);
+                customSizeRange.value = customSettings.size;
                 updateCustomDiffDisplay();
             } else {
                 customDiffEditor.classList.add('hidden');
             }
-
             initMenus();
         }
         
         function updateCustomDiffDisplay() {
-            const val = parseInt(customSpeedRange.value);
-            // Map value to text description
-            let text = "Normal";
-            if (val < 15) text = "Super Chill";
-            else if (val < 20) text = "Chill";
-            else if (val === 20) text = "Normal";
-            else if (val < 30) text = "Fast";
-            else if (val < 45) text = "Sweaty";
-            else text = "Insane";
+            const speedVal = parseInt(customSpeedRange.value);
+            let speedText = "Normal";
+            if (speedVal < 15) speedText = "Super Chill";
+            else if (speedVal < 20) speedText = "Chill";
+            else if (speedVal === 20) speedText = "Normal";
+            else if (speedVal < 30) speedText = "Fast";
+            else if (speedVal < 45) speedText = "Sweaty";
+            else speedText = "Insane";
             
-            customSpeedVal.innerText = text + ` (${val})`;
+            customSpeedVal.innerText = speedText + ` (${speedVal})`;
+            DIFFICULTIES['CUSTOM'].speed = speedVal / 10000;
             
-            // Update the actual difficulty object
-            DIFFICULTIES['CUSTOM'].speed = val / 10000;
+            const sizeVal = parseInt(customSizeRange.value);
+            let sizeText = "Normal";
+            if (sizeVal < 20) sizeText = "Tiny";
+            else if (sizeVal < 32) sizeText = "Small";
+            else if (sizeVal === 32) sizeText = "Normal";
+            else if (sizeVal < 45) sizeText = "Large";
+            else sizeText = "Huge";
+            
+            customSizeVal.innerText = sizeText + ` (${sizeVal}px)`;
+            DIFFICULTIES['CUSTOM'].size = sizeVal;
         }
 
         function setSoundPack(key) {
             activeSoundPack = key;
             localStorage.setItem('popLockSoundPack', key);
             playSound('pop'); 
+            
+            if (key === 'CUSTOM') {
+                customSoundEditor.classList.remove('hidden');
+            } else {
+                customSoundEditor.classList.add('hidden');
+            }
+            
             initMenus();
         }
 
@@ -591,8 +757,6 @@
                 }
             }
             localStorage.setItem('popLockSavedThemes', JSON.stringify(savedThemes));
-            
-            // Hide editor but keep settings open
             customThemeEditor.classList.add('hidden');
             initMenus(); 
         }
@@ -619,6 +783,36 @@
             if (savedSound && SOUND_PACKS[savedSound]) {
                 activeSoundPack = savedSound;
             }
+            
+            const savedCustomSound = localStorage.getItem('popLockCustomSound');
+            if (savedCustomSound) {
+                try {
+                    customSoundParams = JSON.parse(savedCustomSound);
+                    // Update UI
+                    customWaveform.value = customSoundParams.waveform;
+                    startFreqRange.value = customSoundParams.startFreq;
+                    endFreqRange.value = customSoundParams.endFreq;
+                    soundDurationRange.value = customSoundParams.duration;
+                    updateCustomSoundDisplay();
+                } catch(e) {}
+            }
+        }
+        
+        function updateCustomSoundDisplay() {
+            startFreqVal.innerText = startFreqRange.value;
+            endFreqVal.innerText = endFreqRange.value;
+            durationVal.innerText = soundDurationRange.value;
+        }
+        
+        function updateCustomSound() {
+            customSoundParams = {
+                waveform: customWaveform.value,
+                startFreq: parseInt(startFreqRange.value),
+                endFreq: parseInt(endFreqRange.value),
+                duration: parseFloat(soundDurationRange.value)
+            };
+            updateCustomSoundDisplay();
+            localStorage.setItem('popLockCustomSound', JSON.stringify(customSoundParams));
         }
 
         function resize() {
@@ -630,6 +824,21 @@
         }
         
         window.addEventListener('resize', resize);
+        
+        // Custom Sound Listeners
+        customWaveform.addEventListener('change', updateCustomSound);
+        startFreqRange.addEventListener('input', updateCustomSound);
+        endFreqRange.addEventListener('input', updateCustomSound);
+        soundDurationRange.addEventListener('input', updateCustomSound);
+        bindBtn(testSoundBtn, () => {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            // Force play even if current pack isn't CUSTOM (temporarily switch context or just run manual logic)
+            const temp = activeSoundPack;
+            activeSoundPack = 'CUSTOM';
+            playSound('pop');
+            activeSoundPack = temp;
+        });
+
         resize();
         loadSavedThemes();
         initMenus();
@@ -741,7 +950,14 @@
             const diffVal = getAngleDifference(angle, targetAngle);
             const currentDiffSettings = DIFFICULTIES[activeDifficulty];
             
-            if (Math.abs(diffVal) <= currentDiffSettings.tol) {
+            let effectiveTol = currentDiffSettings.tol;
+            if (currentDiffSettings.size && radius > 0) {
+                const tickerHalfWidthAngle = 10 / radius; 
+                const targetHalfWidthAngle = currentDiffSettings.size / radius;
+                effectiveTol = tickerHalfWidthAngle + targetHalfWidthAngle + 0.05; 
+            }
+
+            if (Math.abs(diffVal) <= effectiveTol) {
                 score++;
                 lastHitTime = performance.now();
                 scoreDisplay.innerText = MAX_SCORE - score;
@@ -794,6 +1010,7 @@
             lastTime = timestamp;
             const safeDt = Math.min(dt, 50);
             
+            const prevAngle = angle;
             angle += velocity * safeDt;
             angle = angle % (Math.PI * 2);
             if (angle < 0) angle += Math.PI * 2;
@@ -808,17 +1025,17 @@
             const timeSinceHit = now - lastHitTime;
             const flashDuration = 400;
             const isFlashing = timeSinceHit < flashDuration;
+            const diffSettings = DIFFICULTIES[activeDifficulty];
+            const dotSize = diffSettings.size || 32;
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Lock Body Base (Permanent)
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.lineWidth = 50; 
             ctx.strokeStyle = t.lock;
             ctx.stroke();
 
-            // Flash Outlines
             if (isFlashing) {
                 ctx.save();
                 const progress = timeSinceHit / flashDuration;
@@ -832,7 +1049,6 @@
                 ctx.shadowColor = t.progress;
                 ctx.shadowBlur = 50;
                 
-                // Outer rim ONLY
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius + 28, 0, Math.PI * 2);
                 ctx.stroke();
@@ -840,19 +1056,17 @@
                 ctx.restore();
             }
             
-            // Target Dot
             const targetX = centerX + Math.cos(targetAngle) * radius;
             const targetY = centerY + Math.sin(targetAngle) * radius;
             
             ctx.beginPath();
-            ctx.arc(targetX, targetY, 32, 0, Math.PI * 2);
+            ctx.arc(targetX, targetY, dotSize, 0, Math.PI * 2);
             ctx.fillStyle = t.target;
             ctx.shadowColor = t.target;
             ctx.shadowBlur = 25;
             ctx.fill();
             ctx.shadowBlur = 0; 
             
-            // Ticker
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(angle);
@@ -880,7 +1094,6 @@
             ctx.closePath();
         }
 
-        // Listeners
         bindBtn(startBtn, startGame);
         bindBtn(retryBtn, startGame);
         bindBtn(playAgainBtn, startGame);
@@ -891,7 +1104,6 @@
         bindBtn(saveThemeBtn, saveCustomTheme);
         bindBtn(deleteThemeBtn, deleteCustomTheme);
         
-        // Custom Theme Listeners
         document.getElementById('customBg').addEventListener('input', (e) => updateCustomTheme('bg', e.target.value));
         document.getElementById('customLock').addEventListener('input', (e) => updateCustomTheme('lock', e.target.value));
         document.getElementById('customTarget').addEventListener('input', (e) => updateCustomTheme('target', e.target.value));
@@ -900,12 +1112,8 @@
         document.getElementById('customProgress').addEventListener('input', (e) => updateCustomTheme('progress', e.target.value));
         
         customSpeedRange.addEventListener('input', updateCustomDiffDisplay);
-
-        setTimeout(() => {
-             resize();
-             setTheme(activeTheme); // Initialize colors
-        }, 100);
-
+        customSizeRange.addEventListener('input', updateCustomDiffDisplay);
+        // Strict mode toggle removed
     </script>
 </body>
 </html>
