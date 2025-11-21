@@ -159,6 +159,15 @@
                             </div>
                             <input type="range" id="customSizeRange" min="15" max="50" value="32" class="interactive w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
                         </div>
+                        
+                        <!-- Strict Mode Toggle -->
+                        <div class="flex justify-between items-center pt-2 border-t border-white/5">
+                            <span class="text-xs font-bold text-gray-300">Strict Mode</span>
+                            <label class="relative inline-flex items-center cursor-pointer interactive">
+                                <input type="checkbox" id="strictModeToggle" class="sr-only peer">
+                                <div class="w-8 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
@@ -343,6 +352,8 @@
             'MONO': { name: 'Mono', bg: '#000000', lock: '#333333', target: '#ffffff', ticker: '#888888', text: '#ffffff', progress: '#ffffff' },
             'AMOLED': { name: 'Amoled', bg: '#000000', lock: '#1a1a1a', target: '#ef4444', ticker: '#ffffff', text: '#ffffff', progress: '#ef4444' },
             'EMBER': { name: 'Ember', bg: '#1c1917', lock: '#ea580c', target: '#facc15', ticker: '#ffffff', text: '#ffedd5', progress: '#fb923c' },
+            'STEALTH': { name: 'Stealth', bg: '#000000', lock: '#262626', target: '#525252', ticker: '#404040', text: '#737373', progress: '#ffffff' },
+            'GLASS': { name: 'Glass', bg: '#cbd5e1', lock: 'rgba(255,255,255,0.1)', target: 'rgba(255,255,255,0.4)', ticker: 'rgba(255,255,255,0.6)', text: '#334155', progress: 'rgba(51, 65, 85, 0.8)' },
             'CUSTOM': { name: 'Custom', bg: '#111827', lock: '#374151', target: '#facc15', ticker: '#ef4444', text: '#ffffff', progress: '#22c55e' }
         };
 
@@ -350,7 +361,7 @@
             'EASY': { label: 'Chill', speed: 0.0015, inc: 0.00008, tol: 0.35, size: 32 },
             'NORMAL': { label: 'Normal', speed: 0.0020, inc: 0.00012, tol: 0.28, size: 32 },
             'HARD': { label: 'Sweaty', speed: 0.0028, inc: 0.00018, tol: 0.22, size: 32 },
-            'CUSTOM': { label: 'Custom', speed: 0.0020, inc: 0.00012, tol: 0.28, size: 32 }
+            'CUSTOM': { label: 'Custom', speed: 0.0020, inc: 0.00012, tol: 0.28, size: 32, strict: false }
         };
 
         const SOUND_PACKS = {
@@ -609,7 +620,15 @@
         function setTheme(key) {
             activeTheme = key;
             const t = THEMES[key];
-            document.body.style.backgroundColor = t.bg;
+            
+            // Background handling
+            if (activeTheme === 'GLASS') {
+                // Darker Glass Pane Background: Light Grey to Mid Slate
+                document.body.style.background = 'radial-gradient(circle at center, #e2e8f0 0%, #94a3b8 100%)';
+            } else {
+                document.body.style.background = 'none';
+                document.body.style.backgroundColor = t.bg;
+            }
             document.body.style.color = t.text;
 
             if (key.startsWith('CUSTOM')) {
@@ -626,44 +645,106 @@
                 customThemeEditor.classList.add('hidden');
             }
             
-            // Text Colors
-            gameTitle.style.color = t.target;
-            gameTitle.style.textShadow = `0 0 25px ${t.target}60`; 
-            instrBar.style.color = t.ticker;
-            instrDot.style.color = t.target;
+            // Reset Special Text Styles
+            [gameTitle, scoreDisplay, document.getElementById('remainingScore')].forEach(el => {
+                if(el) {
+                    el.style.background = 'none';
+                    el.style.webkitBackgroundClip = 'border-box';
+                    el.style.webkitTextFillColor = 'initial';
+                    el.style.textShadow = 'none';
+                    el.style.filter = 'none';
+                }
+            });
+
+            // Text Colors & Special Effects
+            if (activeTheme === 'GLASS') {
+                // Dark Glass Bead Text Effect (matches dark slate)
+                const glassTextGradient = 'linear-gradient(180deg, rgba(51,65,85,1) 0%, rgba(51,65,85,0.7) 40%, rgba(51,65,85,0.2) 100%)';
+                const glassDropShadow = 'drop-shadow(0 5px 15px rgba(0,0,0,0.2))';
+                
+                [gameTitle, scoreDisplay].forEach(el => {
+                    el.style.background = glassTextGradient;
+                    el.style.webkitBackgroundClip = 'text';
+                    el.style.webkitTextFillColor = 'transparent';
+                    el.style.filter = glassDropShadow;
+                });
+                
+                instrBar.style.color = 'rgba(51,65,85,0.6)';
+                instrDot.style.color = 'rgba(51,65,85,0.9)';
+                
+                // Fix Settings Button Visibility on Light BG
+                settingsBtn.classList.remove('text-gray-300', 'border-white/20');
+                settingsBtn.classList.add('text-slate-700', 'border-slate-500/30');
+            } else {
+                gameTitle.style.color = t.target;
+                gameTitle.style.textShadow = `0 0 25px ${t.target}60`; 
+                instrBar.style.color = t.ticker;
+                instrDot.style.color = t.target;
+                scoreDisplay.style.color = t.text;
+                
+                // Reset Settings Button
+                settingsBtn.classList.add('text-gray-300', 'border-white/20');
+                settingsBtn.classList.remove('text-slate-700', 'border-slate-500/30');
+            }
             
-            // Stats Colors
+            // Stats Colors (Remaining)
             const remainingScoreEl = document.getElementById('remainingScore');
             if (remainingScoreEl) {
-                remainingScoreEl.style.color = t.target;
+                if (activeTheme === 'GLASS') {
+                    remainingScoreEl.style.color = 'rgba(51,65,85,0.8)';
+                    remainingScoreEl.style.textShadow = '0 0 10px rgba(51,65,85,0.1)';
+                } else {
+                    remainingScoreEl.style.color = t.target;
+                }
                 remainingScoreEl.classList.remove('text-yellow-500'); 
             }
 
             // Card Colors & Backgrounds
             if (gameOverCard) {
                 gameOverCard.style.borderColor = t.lock;
-                gameOverCard.style.backgroundColor = t.bg;
+                gameOverCard.style.backgroundColor = activeTheme === 'GLASS' ? 'rgba(255, 255, 255, 0.6)' : t.bg;
                 gameOverCard.style.color = t.text;
             }
             if (winCard) {
                 winCard.style.borderColor = t.target;
-                winCard.style.backgroundColor = t.bg;
+                winCard.style.backgroundColor = activeTheme === 'GLASS' ? 'rgba(255, 255, 255, 0.6)' : t.bg;
                 winCard.style.color = t.text;
             }
             
-            // Button Colors
+            // Button Colors & Glass Styling
             const playBtns = [startBtn, retryBtn, playAgainBtn];
+            const isGlassTheme = activeTheme === 'GLASS';
+            
             playBtns.forEach(btn => {
-                btn.style.backgroundColor = t.target;
-                btn.style.boxShadow = `0 0 20px ${t.target}50`;
-                
-                // Contrast check for text color
-                const hex = t.target.replace('#', '');
-                const r = parseInt(hex.substr(0,2),16);
-                const g = parseInt(hex.substr(2,2),16);
-                const b = parseInt(hex.substr(4,2),16);
-                const yiq = ((r*299)+(g*587)+(b*114))/1000;
-                btn.style.color = (yiq >= 128) ? '#000000' : '#ffffff';
+                if (isGlassTheme) {
+                    // Apply Glassmorphism Style (Light Mode)
+                    btn.style.backgroundColor = 'rgba(51, 65, 85, 0.1)';
+                    btn.style.backdropFilter = 'blur(12px)';
+                    btn.style.webkitBackdropFilter = 'blur(12px)';
+                    btn.style.border = '1px solid rgba(51, 65, 85, 0.3)';
+                    btn.style.boxShadow = '0 8px 32px 0 rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2)';
+                    btn.style.color = '#334155';
+                    btn.style.textShadow = 'none';
+                } else {
+                    // Standard Style
+                    btn.style.backgroundColor = t.target;
+                    btn.style.backdropFilter = 'none';
+                    btn.style.webkitBackdropFilter = 'none';
+                    btn.style.border = '2px solid transparent';
+                    btn.style.boxShadow = `0 0 20px ${t.target}50`;
+                    
+                    const hex = t.target.replace('#', '');
+                    if (hex.startsWith('rgb')) {
+                        btn.style.color = '#ffffff';
+                    } else {
+                        const r = parseInt(hex.substr(0,2),16);
+                        const g = parseInt(hex.substr(2,2),16);
+                        const b = parseInt(hex.substr(4,2),16);
+                        const yiq = ((r*299)+(g*587)+(b*114))/1000;
+                        btn.style.color = (yiq >= 128) ? '#000000' : '#ffffff';
+                    }
+                    btn.style.textShadow = 'none';
+                }
             });
 
             applyGlassState();
@@ -709,6 +790,7 @@
                 const s = DIFFICULTIES['CUSTOM'];
                 customSpeedRange.value = Math.round(s.speed * 10000);
                 customSizeRange.value = s.size;
+                strictModeToggle.checked = s.strict || false;
                 updateCustomDiffDisplay();
             } else {
                 customDiffEditor.classList.add('hidden');
@@ -731,6 +813,11 @@
             customSizeVal.innerText = sizeVal + "px";
             DIFFICULTIES['CUSTOM'].size = sizeVal;
         }
+        
+        const strictModeToggle = document.getElementById('strictModeToggle');
+        strictModeToggle.addEventListener('change', (e) => {
+             DIFFICULTIES['CUSTOM'].strict = e.target.checked;
+        });
 
         function setSoundPack(key) {
             activeSoundPack = key;
@@ -831,12 +918,53 @@
             localStorage.setItem('popLockCustomSound', JSON.stringify(customSounds));
         }
 
+        // Rain System
+        const rainSystem = {
+            drops: [],
+            maxDrops: 100,
+            init: function() {
+                this.drops = [];
+                for(let i=0; i<this.maxDrops; i++) {
+                    this.drops.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        length: Math.random() * 20 + 10,
+                        speed: Math.random() * 10 + 5,
+                        opacity: Math.random() * 0.5 + 0.1
+                    });
+                }
+            },
+            update: function() {
+                this.drops.forEach(drop => {
+                    drop.y += drop.speed;
+                    if (drop.y > canvas.height) {
+                        drop.y = -drop.length;
+                        drop.x = Math.random() * canvas.width;
+                    }
+                });
+            },
+            draw: function(ctx) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)'; // Slate rain
+                ctx.lineWidth = 1;
+                this.drops.forEach(drop => {
+                    ctx.beginPath();
+                    ctx.moveTo(drop.x, drop.y);
+                    ctx.lineTo(drop.x, drop.y + drop.length);
+                    ctx.globalAlpha = drop.opacity;
+                    ctx.stroke();
+                });
+                ctx.restore();
+            }
+        };
+
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             centerX = canvas.width / 2;
             centerY = canvas.height / 2;
             radius = Math.min(canvas.width, canvas.height) * 0.22;
+            rainSystem.init();
             draw();
         }
         
@@ -924,9 +1052,16 @@
         }
 
         function spawnTarget() {
+            // Check strict mode status
+            const isStrict = activeDifficulty === 'CUSTOM' && DIFFICULTIES['CUSTOM'].strict;
+
             // Logic for random distance
             const minDist = Math.PI / 3; 
-            const maxDist = Math.PI * 1.5; 
+            
+            // In strict mode, limit distance to < 180 degrees to prevent logic errors
+            // In normal mode, allow wider variance (up to ~288 degrees)
+            const maxDist = isStrict ? Math.PI * 0.9 : Math.PI * 1.6; 
+            
             const range = maxDist - minDist;
             const dist = minDist + (Math.random() * range);
             
@@ -1042,6 +1177,59 @@
             angle = angle % (Math.PI * 2);
             if (angle < 0) angle += Math.PI * 2;
             
+            // Strict Mode Logic
+            if (activeDifficulty === 'CUSTOM' && DIFFICULTIES['CUSTOM'].strict) {
+                const diffVal = getAngleDifference(angle, targetAngle);
+                const diffSettings = DIFFICULTIES['CUSTOM'];
+                
+                let tolerance = diffSettings.tol;
+                if (diffSettings.size && radius > 0) {
+                     const tickerHalf = 10 / radius;
+                     const targetHalf = diffSettings.size / radius;
+                     tolerance = tickerHalf + targetHalf + 0.05;
+                }
+                
+                // Check if we passed the target (with some buffer to allow for hitting the edge)
+                // We check if the angle difference sign matches direction but magnitude is > tolerance
+                // If direction is 1 (clockwise), and diff is negative (meaning angle is past target), we missed.
+                // But getAngleDifference returns (target - current).
+                // If moving clockwise (dir=1), we want angle to approach target.
+                // If angle > target, we passed. 
+                // Let's simplify: calculate distance relative to movement.
+                
+                // If direction is 1, we expect angle to be increasing towards target.
+                // If (angle - target) is positive and small, we passed it.
+                
+                // Let's use the angle difference logic.
+                // getAngleDifference(angle, target) = target - angle
+                // If moving clockwise (+1), this value decreases. When it becomes negative, we passed.
+                // If moving anti-clockwise (-1), this value increases. When it becomes positive, we passed.
+                
+                const dist = getAngleDifference(angle, targetAngle);
+                
+                // Tolerance buffer: we allow passing by a tiny bit before failing
+                // This prevents failing while still visually touching
+                
+                const missThreshold = -tolerance - 0.1; // Buffer
+                
+                if (direction === 1) {
+                    // Clockwise: dist goes from + to -. 
+                    // If dist < -tolerance, we passed.
+                    if (dist < missThreshold && dist > -Math.PI) { 
+                        // ensure we didn't wrap around (dist would be huge positive)
+                        playSound('fail');
+                        gameOver();
+                    }
+                } else {
+                    // Anti-clockwise: dist goes from - to +.
+                    // If dist > tolerance, we passed.
+                    if (dist > -missThreshold && dist < Math.PI) {
+                        playSound('fail');
+                        gameOver();
+                    }
+                }
+            }
+            
             draw();
             requestAnimationFrame(loop);
         }
@@ -1056,6 +1244,171 @@
             const dotSize = diffSettings.size || 32;
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // --- 3D GLASS THEME RENDERING (ENHANCED) ---
+            if (activeTheme === 'GLASS') {
+                // Update and Draw Rain (Background)
+                rainSystem.update();
+                rainSystem.draw(ctx);
+
+                // 0. Glass Pane Base (The Platform)
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius + 80, 0, Math.PI * 2);
+                // Subtle white frosted pane
+                const paneGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 80);
+                paneGrad.addColorStop(0, 'rgba(255,255,255,0.4)');
+                paneGrad.addColorStop(1, 'rgba(255,255,255,0.05)');
+                ctx.fillStyle = paneGrad;
+                ctx.shadowColor = 'rgba(0,0,0,0.08)';
+                ctx.shadowBlur = 40;
+                ctx.fill();
+                
+                // Pane Edge
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.stroke();
+                ctx.restore();
+
+                // 1. Lock Ring (Complex 3D Torus)
+                ctx.save();
+                
+                // Drop Shadow (Darker for light background)
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.lineWidth = 50;
+                ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                ctx.shadowColor = 'rgba(51,65,85,0.25)'; // Slate shadow
+                ctx.shadowBlur = 30;
+                ctx.shadowOffsetY = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+
+                // Main Glass Body (Fresnel Gradient)
+                const ringGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+                ringGrad.addColorStop(0, 'rgba(255,255,255,0.6)');   // Top-left bright highlight
+                ringGrad.addColorStop(0.4, 'rgba(241,245,249,0.2)'); // Slate-100 clear
+                ringGrad.addColorStop(0.6, 'rgba(203,213,225,0.2)'); // Slate-300 clear
+                ringGrad.addColorStop(1, 'rgba(100,116,139,0.2)');   // Bottom-right subtle slate shadow
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.lineWidth = 50;
+                ctx.strokeStyle = ringGrad;
+                ctx.stroke();
+
+                // Inner Shadow for depth (Simulates thickness)
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius - 23, 0, Math.PI * 2); // Inner edge
+                ctx.strokeStyle = 'rgba(51,65,85,0.1)'; // Darker inner shadow
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius + 23, 0, Math.PI * 2); // Outer edge
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)'; // Brighter outer edge
+                ctx.stroke();
+
+                // Specular Highlights (Sharp reflections)
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, -Math.PI/4 - 0.4, -Math.PI/4 + 0.4);
+                ctx.lineWidth = 46; 
+                const specGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX - radius + 50, centerY - radius + 50);
+                specGrad.addColorStop(0, 'rgba(255,255,255,0.8)');
+                specGrad.addColorStop(1, 'rgba(255,255,255,0.0)');
+                ctx.strokeStyle = specGrad;
+                ctx.stroke();
+                ctx.restore();
+
+                // Flash Effect (Outer Glow only)
+                if (isFlashing) {
+                    const progress = timeSinceHit / flashDuration;
+                    const alpha = 1.0 * (1 - progress);
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    ctx.globalCompositeOperation = 'multiply'; // Multiply for dark ring effect on light bg? Or simple overlay
+                    // actually 'source-over' is fine if color is dark slate
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius + 28, 0, Math.PI * 2);
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = 'rgba(51,65,85,0.8)'; // Dark Slate flash
+                    ctx.shadowColor = 'rgba(51,65,85,0.5)';
+                    ctx.shadowBlur = 20;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                ctx.restore();
+
+                // 2. Target Dot (Refractive Sphere - Dark Glass)
+                const targetX = centerX + Math.cos(targetAngle) * radius;
+                const targetY = centerY + Math.sin(targetAngle) * radius;
+                
+                ctx.save();
+                // Shadow
+                ctx.shadowColor = 'rgba(51,65,85,0.3)';
+                ctx.shadowBlur = 15;
+                ctx.shadowOffsetY = 5;
+                
+                // Sphere Body
+                const dotGrad = ctx.createRadialGradient(targetX - dotSize/4, targetY - dotSize/4, 0, targetX, targetY, dotSize);
+                dotGrad.addColorStop(0, 'rgba(71,85,105,0.9)'); // Slate-600
+                dotGrad.addColorStop(0.3, 'rgba(51,65,85,0.8)'); // Slate-700
+                dotGrad.addColorStop(1, 'rgba(30,41,59,0.6)');   // Slate-800 edge
+                
+                ctx.beginPath();
+                ctx.arc(targetX, targetY, dotSize, 0, Math.PI * 2);
+                ctx.fillStyle = dotGrad;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                
+                // Reflection
+                ctx.beginPath();
+                ctx.arc(targetX - dotSize/3, targetY - dotSize/3, dotSize/4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fill();
+                
+                ctx.restore();
+
+                // 3. Ticker (Glass Pill - Frosted Dark)
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle);
+                ctx.translate(radius, 0);
+                
+                const w = 80; const h = 20; const r = 10;
+                
+                // Glass Body
+                const tickerGrad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
+                tickerGrad.addColorStop(0, 'rgba(148,163,184,0.9)'); // Slate-400
+                tickerGrad.addColorStop(0.5, 'rgba(100,116,139,0.6)'); // Slate-500
+                tickerGrad.addColorStop(1, 'rgba(71,85,105,0.4)'); // Slate-600
+                
+                ctx.beginPath();
+                ctx.moveTo(-w/2 + r, -h/2);
+                ctx.arcTo(w/2, -h/2, w/2, h/2, r);
+                ctx.arcTo(w/2, h/2, -w/2, h/2, r);
+                ctx.arcTo(-w/2, h/2, -w/2, -h/2, r);
+                ctx.arcTo(-w/2, -h/2, w/2, -h/2, r);
+                ctx.closePath();
+                
+                ctx.fillStyle = tickerGrad;
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                
+                // Sharp Rim Reflection
+                ctx.lineWidth = 1.0;
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.stroke();
+                
+                ctx.restore();
+                return;
+            }
+
+            // --- STANDARD THEME RENDERING ---
             
             // Draw Base Lock
             ctx.beginPath();
@@ -1063,14 +1416,12 @@
             ctx.lineWidth = 50; 
             
             if (isFlashing) {
-                // Flash Logic
                 const progress = timeSinceHit / flashDuration;
                 const alpha = 0.8 * (1 - progress);
                 
                 ctx.strokeStyle = t.lock; 
                 ctx.stroke();
                 
-                // Outer Glow Flash
                 ctx.save();
                 ctx.globalAlpha = alpha;
                 ctx.globalCompositeOperation = 'lighter';
@@ -1082,10 +1433,7 @@
                 ctx.shadowColor = t.progress;
                 ctx.shadowBlur = 50;
                 ctx.stroke();
-                
-
                 ctx.restore();
-                
             } else {
                 ctx.strokeStyle = t.lock;
                 ctx.stroke();
@@ -1147,5 +1495,3 @@
         customSpeedRange.addEventListener('input', updateCustomDiffDisplay);
         customSizeRange.addEventListener('input', updateCustomDiffDisplay);
     </script>
-</body>
-</html>
